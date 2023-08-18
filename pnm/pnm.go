@@ -8,8 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"io"
 	"math"
+
+	"github.com/shogo82148/go-imaging/bitmap"
 )
 
 func init() {
@@ -28,7 +31,36 @@ type config struct {
 }
 
 func Decode(r io.Reader) (image.Image, error) {
+	br := bufio.NewReader(r)
+	c, err := decodeConfig(br)
+	if err != nil {
+		return nil, err
+	}
+	return decodeP4(br, c)
+}
+
+func decodeP1(r io.Reader, c config) (image.Image, error) {
 	return nil, nil
+}
+
+// decodeP4 decodes a Portable Bit Map image.
+// See https://netpbm.sourceforge.net/doc/pbm.html
+func decodeP4(br *bufio.Reader, c config) (image.Image, error) {
+	if err := skipOneWhitespace(br); err != nil {
+		return nil, err
+	}
+
+	stride := (c.Width + 7) / 8
+	buf := make([]byte, stride*c.Height)
+	if _, err := io.ReadFull(br, buf); err != nil {
+		return nil, err
+	}
+
+	return &bitmap.Image{
+		Pix:    buf,
+		Stride: stride,
+		Rect:   image.Rect(0, 0, c.Width, c.Height),
+	}, nil
 }
 
 func DecodeConfig(r io.Reader) (image.Config, error) {
@@ -37,9 +69,16 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 	if err != nil {
 		return image.Config{}, err
 	}
+
+	var m color.Model
+	switch c.MagicNumber {
+	case 0x5031, 0x5034: // P1, P4
+		m = bitmap.ColorModel
+	}
 	return image.Config{
-		Width:  c.Width,
-		Height: c.Height,
+		ColorModel: m,
+		Width:      c.Width,
+		Height:     c.Height,
 	}, nil
 }
 
@@ -77,6 +116,19 @@ func decodeConfig(br *bufio.Reader) (config, error) {
 		Width:       width,
 		Height:      height,
 	}, nil
+}
+
+func skipOneWhitespace(br *bufio.Reader) error {
+	b, err := br.ReadByte()
+	if err != nil {
+		return err
+	}
+	switch b {
+	case ' ', '\t', '\r', '\n':
+		return nil
+	default:
+		return fmt.Errorf("pnm: unexpected char: %c", b)
+	}
 }
 
 func skipWhitespace(br *bufio.Reader) error {
