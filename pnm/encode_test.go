@@ -118,4 +118,45 @@ func TestEncode(t *testing.T) {
 			t.Errorf("unexpected output: got %v, want %v", got, want)
 		}
 	})
+
+	t.Run("encode binary PBM", func(t *testing.T) {
+		img := &bitmap.Image{
+			Pix: []byte{
+				0b000010_00,
+				0b000010_00,
+				0b000010_00,
+				0b000010_00,
+				0b000010_00,
+				0b000010_00,
+				0b100010_00,
+				0b011100_00,
+				0b000000_00,
+				0b000000_00,
+			},
+			Rect:   image.Rect(0, 0, 6, 10),
+			Stride: 1,
+		}
+		buf := &bytes.Buffer{}
+		if err := defaultEncoder.Encode(buf, img); err != nil {
+			t.Fatal(err)
+		}
+		want := []byte{
+			'P', '1', '\n',
+			'6', ' ', '1', '0', '\n',
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b100010_00,
+			0b011100_00,
+			0b000000_00,
+			0b000000_00,
+		}
+		got := buf.Bytes()
+		if !bytes.Equal(got, want) {
+			t.Errorf("unexpected output: got %v, want %v", got, want)
+		}
+	})
 }

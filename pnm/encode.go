@@ -3,6 +3,7 @@ package pnm
 import (
 	"fmt"
 	"image"
+	"image/draw"
 	"io"
 
 	"github.com/shogo82148/go-imaging/bitmap"
@@ -189,7 +190,19 @@ func (enc *Encoder) encodeP3(w io.Writer, m image.Image) error {
 	return nil
 }
 
+// encodeP4 encodes a binary Portable Bit Map image.
+// See https://netpbm.sourceforge.net/doc/pbm.html
 func (enc *Encoder) encodeP4(w io.Writer, m image.Image) error {
+	img := bitmap.New(m.Bounds())
+	clone(img, m)
+
+	bounds := m.Bounds()
+	if _, err := fmt.Fprintf(w, "P1\n%d %d\n", bounds.Dx(), bounds.Dy()); err != nil {
+		return err
+	}
+	if _, err := w.Write(img.Pix); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -199,4 +212,13 @@ func (enc *Encoder) encodeP5(w io.Writer, m image.Image) error {
 
 func (enc *Encoder) encodeP6(w io.Writer, m image.Image) error {
 	return nil
+}
+
+func clone(dst draw.Image, src image.Image) {
+	bounds := dst.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			dst.Set(x, y, src.At(x, y))
+		}
+	}
 }
