@@ -79,6 +79,8 @@ func (enc *Encoder) Encode(w io.Writer, m image.Image) error {
 	}
 }
 
+// encodeP1 encodes a plain Portable Bit Map image.
+// See https://netpbm.sourceforge.net/doc/pbm.html
 func (enc *Encoder) encodeP1(w io.Writer, m image.Image) error {
 	bounds := m.Bounds()
 	if _, err := fmt.Fprintf(w, "P1\n%d %d\n", bounds.Dx(), bounds.Dy()); err != nil {
@@ -104,7 +106,42 @@ func (enc *Encoder) encodeP1(w io.Writer, m image.Image) error {
 	return nil
 }
 
+// encodeP2 encodes a plain Portable Gray Map image.
+// See https://netpbm.sourceforge.net/doc/pgm.html
 func (enc *Encoder) encodeP2(w io.Writer, m image.Image) error {
+	maxValue := graymap.Model(enc.Max)
+	if maxValue == 0 {
+		switch m := m.(type) {
+		case *graymap.Image:
+			maxValue = m.Max
+		case *image.Gray:
+			maxValue = 0xff
+		case *image.Gray16:
+			maxValue = 0xffff
+		}
+	}
+
+	bounds := m.Bounds()
+	if _, err := fmt.Fprintf(w, "P2\n%d %d\n%d\n", bounds.Dx(), bounds.Dy(), maxValue); err != nil {
+		return err
+	}
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		c := m.At(bounds.Min.X, y)
+		gc := maxValue.Convert(c).(graymap.Color)
+		if _, err := fmt.Fprintf(w, "%d", gc.Y); err != nil {
+			return err
+		}
+		for x := bounds.Min.X + 1; x < bounds.Max.X; x++ {
+			c := m.At(x, y)
+			gc := maxValue.Convert(c).(graymap.Color)
+			if _, err := fmt.Fprintf(w, " %d", gc.Y); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(w); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

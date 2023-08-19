@@ -2,7 +2,6 @@ package pnm
 
 import (
 	"bytes"
-	"image/png"
 	"os"
 	"testing"
 
@@ -156,13 +155,6 @@ func TestDecode(t *testing.T) {
 		if img.Bounds().Dy() != 7 {
 			t.Errorf("expected height 7, got %d", img.Bounds().Dy())
 		}
-
-		out, err := os.Create("feep.png")
-		if err != nil {
-			t.Error(err)
-		}
-		png.Encode(out, img)
-		out.Close()
 	})
 
 	t.Run("ascii PPM 1", func(t *testing.T) {

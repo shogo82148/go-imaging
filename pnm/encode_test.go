@@ -6,9 +6,12 @@ import (
 	"testing"
 
 	"github.com/shogo82148/go-imaging/bitmap"
+	"github.com/shogo82148/go-imaging/graymap"
 )
 
 func TestEncode(t *testing.T) {
+	plainEncoder := &Encoder{Plain: true}
+
 	t.Run("encode plain PBM", func(t *testing.T) {
 		img := &bitmap.Image{
 			Pix: []byte{
@@ -27,10 +30,60 @@ func TestEncode(t *testing.T) {
 			Stride: 1,
 		}
 		buf := &bytes.Buffer{}
-		if err := (&Encoder{Plain: true}).Encode(buf, img); err != nil {
+		if err := plainEncoder.Encode(buf, img); err != nil {
 			t.Fatal(err)
 		}
-		if got, want := buf.String(), "P1\n6 10\n000010\n000010\n000010\n000010\n000010\n000010\n100010\n011100\n000000\n000000\n"; got != want {
+		want := `P1
+6 10
+000010
+000010
+000010
+000010
+000010
+000010
+100010
+011100
+000000
+000000
+`
+		got := buf.String()
+		if got != want {
+			t.Errorf("unexpected output: got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("encode plain PGM", func(t *testing.T) {
+		img := &graymap.Image{
+			Pix: []uint8{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 3, 3, 3, 3, 0, 0, 7, 7, 7, 7, 0, 0, 11, 11, 11, 11, 0, 0, 15, 15, 15, 15, 0,
+				0, 3, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 15, 0, 0, 15, 0,
+				0, 3, 3, 3, 0, 0, 0, 7, 7, 7, 0, 0, 0, 11, 11, 11, 0, 0, 0, 15, 15, 15, 15, 0,
+				0, 3, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0,
+				0, 3, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 0, 11, 11, 11, 11, 0, 0, 15, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			},
+			Stride: 24,
+			Rect:   image.Rect(0, 0, 24, 7),
+			Max:    15,
+		}
+		buf := &bytes.Buffer{}
+		if err := plainEncoder.Encode(buf, img); err != nil {
+			t.Fatal(err)
+		}
+		want := `P2
+24 7
+15
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 3 3 3 3 0 0 7 7 7 7 0 0 11 11 11 11 0 0 15 15 15 15 0
+0 3 0 0 0 0 0 7 0 0 0 0 0 11 0 0 0 0 0 15 0 0 15 0
+0 3 3 3 0 0 0 7 7 7 0 0 0 11 11 11 0 0 0 15 15 15 15 0
+0 3 0 0 0 0 0 7 0 0 0 0 0 11 0 0 0 0 0 15 0 0 0 0
+0 3 0 0 0 0 0 7 7 7 7 0 0 11 11 11 11 0 0 15 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+`
+		got := buf.String()
+		if got != want {
 			t.Errorf("unexpected output: got %v, want %v", got, want)
 		}
 	})
