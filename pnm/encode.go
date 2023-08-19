@@ -190,14 +190,14 @@ func (enc *Encoder) encodeP3(w io.Writer, m image.Image) error {
 	return nil
 }
 
-// encodeP4 encodes a binary Portable Bit Map image.
+// encodeP4 encodes a raw Portable Bit Map image.
 // See https://netpbm.sourceforge.net/doc/pbm.html
 func (enc *Encoder) encodeP4(w io.Writer, m image.Image) error {
 	img := bitmap.New(m.Bounds())
 	clone(img, m)
 
 	bounds := m.Bounds()
-	if _, err := fmt.Fprintf(w, "P1\n%d %d\n", bounds.Dx(), bounds.Dy()); err != nil {
+	if _, err := fmt.Fprintf(w, "P4\n%d %d\n", bounds.Dx(), bounds.Dy()); err != nil {
 		return err
 	}
 	if _, err := w.Write(img.Pix); err != nil {
@@ -206,7 +206,32 @@ func (enc *Encoder) encodeP4(w io.Writer, m image.Image) error {
 	return nil
 }
 
+// encodePt encodes a raw Portable Gray Map image.
+// See https://netpbm.sourceforge.net/doc/pgm.html
 func (enc *Encoder) encodeP5(w io.Writer, m image.Image) error {
+	maxValue := graymap.Model(enc.Max)
+	if maxValue == 0 {
+		switch m := m.(type) {
+		case *graymap.Image:
+			maxValue = m.Max
+		case *image.Gray:
+			maxValue = 0xff
+		case *image.Gray16:
+			maxValue = 0xffff
+		default:
+			maxValue = 0xff
+		}
+	}
+
+	bounds := m.Bounds()
+	img := graymap.New(bounds, maxValue)
+	clone(img, m)
+	if _, err := fmt.Fprintf(w, "P5\n%d %d\n%d\n", bounds.Dx(), bounds.Dy(), maxValue); err != nil {
+		return err
+	}
+	if _, err := w.Write(img.Pix); err != nil {
+		return err
+	}
 	return nil
 }
 
