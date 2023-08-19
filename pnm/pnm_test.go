@@ -47,6 +47,79 @@ func TestDecode(t *testing.T) {
 		}
 	})
 
+	t.Run("another PBM Example from Wikipedia", func(t *testing.T) {
+		// example from Wikipedia https://en.wikipedia.org/wiki/Netpbm#PBM_example
+		f, err := os.Open("testdata/wikipedia_example_j2.pbm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b100010_00,
+			0b011100_00,
+			0b000000_00,
+			0b000000_00,
+		}
+		if !bytes.Equal(img.(*bitmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*bitmap.Image).Pix)
+		}
+		if img.ColorModel() != bitmap.ColorModel {
+			t.Errorf("expected bitmap.ColorModel, got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 6 {
+			t.Errorf("expected width 6, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 10 {
+			t.Errorf("expected height 10, got %d", img.Bounds().Dy())
+		}
+	})
+
+	t.Run("feep", func(t *testing.T) {
+		// example from https://netpbm.sourceforge.net/doc/pbm.html
+		f, err := os.Open("testdata/feep.pbm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			0b00000000, 0b00000000, 0b00000000,
+			0b01111001, 0b11100111, 0b10011110,
+			0b01000001, 0b00000100, 0b00010010,
+			0b01110001, 0b11000111, 0b00011110,
+			0b01000001, 0b00000100, 0b00010000,
+			0b01000001, 0b11100111, 0b10010000,
+			0b00000000, 0b00000000, 0b00000000,
+		}
+		if !bytes.Equal(img.(*bitmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*bitmap.Image).Pix)
+		}
+		if img.ColorModel() != bitmap.ColorModel {
+			t.Errorf("expected bitmap.ColorModel, got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 24 {
+			t.Errorf("expected width 6, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 7 {
+			t.Errorf("expected height 10, got %d", img.Bounds().Dy())
+		}
+	})
+
 	t.Run("maze", func(t *testing.T) {
 		// netpbm test data https://sourceforge.net/p/netpbm/code/HEAD/tree/trunk/test/maze.pbm
 		f, err := os.Open("testdata/maze.pbm")

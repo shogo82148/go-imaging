@@ -10,7 +10,6 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"log"
 	"math"
 
 	"github.com/shogo82148/go-imaging/bitmap"
@@ -59,7 +58,6 @@ func decodeP1(br *bufio.Reader, c config) (image.Image, error) {
 			if err != nil {
 				return nil, err
 			}
-			log.Printf("x=%d, y=%d, b=%c", x, y, b)
 			switch b {
 			case '0':
 				img.Set(x, y, bitmap.White)
