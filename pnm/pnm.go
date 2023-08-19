@@ -44,6 +44,8 @@ func Decode(r io.Reader) (image.Image, error) {
 		return decodeP2(br, c)
 	case 0x5034: // P4
 		return decodeP4(br, c)
+	case 0x5035: // P5
+		return decodeP5(br, c)
 	}
 	return nil, errors.New("pnm: unsupported format")
 }
@@ -84,8 +86,8 @@ func decodeP2(br *bufio.Reader, c config) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	if maxVal > 0xffff {
-		return nil, errors.New("pnm: unsupported max value")
+	if maxVal == 0 || maxVal > 0xffff {
+		return nil, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
 	}
 
 	img := graymap.New(image.Rect(0, 0, c.Width, c.Height), graymap.Model(maxVal))
@@ -124,6 +126,37 @@ func decodeP4(br *bufio.Reader, c config) (image.Image, error) {
 		Pix:    buf,
 		Stride: stride,
 		Rect:   image.Rect(0, 0, c.Width, c.Height),
+	}, nil
+}
+
+// decodeP5 decodes a raw Portable Gray Map image.
+// See https://netpbm.sourceforge.net/doc/pgm.html
+func decodeP5(br *bufio.Reader, c config) (image.Image, error) {
+	if err := skipWhitespace(br); err != nil {
+		return nil, err
+	}
+	maxVal, err := readInt(br)
+	if err != nil {
+		return nil, err
+	}
+	if maxVal == 0 || maxVal > 0xffff {
+		return nil, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
+	}
+
+	stride := c.Width
+	if maxVal >= 256 {
+		stride *= 2
+	}
+	buf := make([]byte, stride*c.Height)
+	if _, err := io.ReadFull(br, buf); err != nil {
+		return nil, err
+	}
+
+	return &graymap.Image{
+		Pix:    buf,
+		Stride: stride,
+		Rect:   image.Rect(0, 0, c.Width, c.Height),
+		Max:    graymap.Model(maxVal),
 	}, nil
 }
 
