@@ -2,10 +2,12 @@ package pnm
 
 import (
 	"bytes"
+	"image/png"
 	"os"
 	"testing"
 
 	"github.com/shogo82148/go-imaging/bitmap"
+	"github.com/shogo82148/go-imaging/graymap"
 )
 
 func TestDecode(t *testing.T) {
@@ -85,7 +87,7 @@ func TestDecode(t *testing.T) {
 		}
 	})
 
-	t.Run("feep", func(t *testing.T) {
+	t.Run("feep.pbm", func(t *testing.T) {
 		// example from https://netpbm.sourceforge.net/doc/pbm.html
 		f, err := os.Open("testdata/feep.pbm")
 		if err != nil {
@@ -118,6 +120,48 @@ func TestDecode(t *testing.T) {
 		if img.Bounds().Dy() != 7 {
 			t.Errorf("expected height 10, got %d", img.Bounds().Dy())
 		}
+	})
+
+	t.Run("feep.pgm", func(t *testing.T) {
+		// example from https://netpbm.sourceforge.net/doc/pgm.html
+		f, err := os.Open("testdata/feep.pgm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 3, 3, 3, 3, 0, 0, 7, 7, 7, 7, 0, 0, 11, 11, 11, 11, 0, 0, 15, 15, 15, 15, 0,
+			0, 3, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 15, 0, 0, 15, 0,
+			0, 3, 3, 3, 0, 0, 0, 7, 7, 7, 0, 0, 0, 11, 11, 11, 0, 0, 0, 15, 15, 15, 15, 0,
+			0, 3, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0,
+			0, 3, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 0, 11, 11, 11, 11, 0, 0, 15, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		}
+		if !bytes.Equal(img.(*graymap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*graymap.Image).Pix)
+		}
+		if img.ColorModel() != graymap.Model(15) {
+			t.Errorf("expected graymap.Model(15), got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 24 {
+			t.Errorf("expected width 24, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 7 {
+			t.Errorf("expected height 7, got %d", img.Bounds().Dy())
+		}
+
+		out, err := os.Create("feep.png")
+		if err != nil {
+			t.Error(err)
+		}
+		png.Encode(out, img)
+		out.Close()
 	})
 
 	t.Run("maze", func(t *testing.T) {

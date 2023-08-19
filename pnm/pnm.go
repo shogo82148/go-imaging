@@ -13,6 +13,7 @@ import (
 	"math"
 
 	"github.com/shogo82148/go-imaging/bitmap"
+	"github.com/shogo82148/go-imaging/graymap"
 )
 
 func init() {
@@ -39,6 +40,8 @@ func Decode(r io.Reader) (image.Image, error) {
 	switch c.MagicNumber {
 	case 0x5031: // P1
 		return decodeP1(br, c)
+	case 0x5032: // P2
+		return decodeP2(br, c)
 	case 0x5034: // P4
 		return decodeP4(br, c)
 	}
@@ -66,6 +69,39 @@ func decodeP1(br *bufio.Reader, c config) (image.Image, error) {
 			default:
 				return nil, fmt.Errorf("pnm: unexpected char: %c", b)
 			}
+		}
+	}
+	return img, nil
+}
+
+// decodeP2 decodes a plain Portable Gray Map image.
+// See https://netpbm.sourceforge.net/doc/pgm.html
+func decodeP2(br *bufio.Reader, c config) (image.Image, error) {
+	if err := skipWhitespace(br); err != nil {
+		return nil, err
+	}
+	maxVal, err := readInt(br)
+	if err != nil {
+		return nil, err
+	}
+	if maxVal > 0xffff {
+		return nil, errors.New("pnm: unsupported max value")
+	}
+
+	img := graymap.New(image.Rect(0, 0, c.Width, c.Height), graymap.Model(maxVal))
+	for y := 0; y < c.Height; y++ {
+		for x := 0; x < c.Width; x++ {
+			if err := skipWhitespace(br); err != nil {
+				return nil, err
+			}
+			val, err := readInt(br)
+			if err != nil {
+				return nil, err
+			}
+			if val > maxVal {
+				return nil, fmt.Errorf("pnm: value %d is greater than max value %d", val, maxVal)
+			}
+			img.Set(x, y, graymap.Color{Y: uint16(val), Max: graymap.Model(maxVal)})
 		}
 	}
 	return img, nil
@@ -210,6 +246,9 @@ func readInt(br *bufio.Reader) (int, error) {
 	for {
 		b, err := br.ReadByte()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return 0, err
 		}
 		if '0' <= b && b <= '9' {
