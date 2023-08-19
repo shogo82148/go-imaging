@@ -10,6 +10,7 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"log"
 	"math"
 
 	"github.com/shogo82148/go-imaging/bitmap"
@@ -36,14 +37,43 @@ func Decode(r io.Reader) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decodeP4(br, c)
+	switch c.MagicNumber {
+	case 0x5031: // P1
+		return decodeP1(br, c)
+	case 0x5034: // P4
+		return decodeP4(br, c)
+	}
+	return nil, errors.New("pnm: unsupported format")
 }
 
-func decodeP1(r io.Reader, c config) (image.Image, error) {
-	return nil, nil
+// decodeP1 decodes a plain Portable Bit Map image.
+// See https://netpbm.sourceforge.net/doc/pbm.html
+func decodeP1(br *bufio.Reader, c config) (image.Image, error) {
+	img := bitmap.New(image.Rect(0, 0, c.Width, c.Height))
+	for y := 0; y < c.Height; y++ {
+		for x := 0; x < c.Width; x++ {
+			if err := skipWhitespace(br); err != nil {
+				return nil, err
+			}
+			b, err := br.ReadByte()
+			if err != nil {
+				return nil, err
+			}
+			log.Printf("x=%d, y=%d, b=%c", x, y, b)
+			switch b {
+			case '0':
+				img.Set(x, y, bitmap.White)
+			case '1':
+				img.Set(x, y, bitmap.Black)
+			default:
+				return nil, fmt.Errorf("pnm: unexpected char: %c", b)
+			}
+		}
+	}
+	return img, nil
 }
 
-// decodeP4 decodes a Portable Bit Map image.
+// decodeP4 decodes a raw Portable Bit Map image.
 // See https://netpbm.sourceforge.net/doc/pbm.html
 func decodeP4(br *bufio.Reader, c config) (image.Image, error) {
 	if err := skipOneWhitespace(br); err != nil {
@@ -124,7 +154,7 @@ func skipOneWhitespace(br *bufio.Reader) error {
 		return err
 	}
 	switch b {
-	case ' ', '\t', '\r', '\n':
+	case ' ', '\t', '\r', '\n', '\v', '\f':
 		return nil
 	default:
 		return fmt.Errorf("pnm: unexpected char: %c", b)
@@ -138,7 +168,7 @@ func skipWhitespace(br *bufio.Reader) error {
 			return err
 		}
 		switch b {
-		case ' ', '\t', '\r', '\n':
+		case ' ', '\t', '\r', '\n', '\v', '\f':
 			// ignore whitespace
 		case '#':
 			// comment, skip to '\r' or '\n'

@@ -1,6 +1,7 @@
 package pnm
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
@@ -20,7 +21,30 @@ func TestDecode(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		_ = img // TODO: check the image
+		want := []byte{
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b000010_00,
+			0b100010_00,
+			0b011100_00,
+			0b000000_00,
+			0b000000_00,
+		}
+		if !bytes.Equal(img.(*bitmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*bitmap.Image).Pix)
+		}
+		if img.ColorModel() != bitmap.ColorModel {
+			t.Errorf("expected bitmap.ColorModel, got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 6 {
+			t.Errorf("expected width 6, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 10 {
+			t.Errorf("expected height 10, got %d", img.Bounds().Dy())
+		}
 	})
 
 	t.Run("maze", func(t *testing.T) {
