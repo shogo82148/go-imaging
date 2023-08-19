@@ -115,9 +115,9 @@ func (enc *Encoder) encodeP2(w io.Writer, m image.Image) error {
 		switch m := m.(type) {
 		case *graymap.Image:
 			maxValue = m.Max
-		case *image.Gray:
+		case *image.Gray, *image.RGBA, *image.NRGBA:
 			maxValue = 0xff
-		case *image.Gray16:
+		case *image.Gray16, *image.RGBA64, *image.NRGBA64:
 			maxValue = 0xffff
 		default:
 			maxValue = 0xff
@@ -214,9 +214,9 @@ func (enc *Encoder) encodeP5(w io.Writer, m image.Image) error {
 		switch m := m.(type) {
 		case *graymap.Image:
 			maxValue = m.Max
-		case *image.Gray:
+		case *image.Gray, *image.RGBA, *image.NRGBA:
 			maxValue = 0xff
-		case *image.Gray16:
+		case *image.Gray16, *image.RGBA64, *image.NRGBA64:
 			maxValue = 0xffff
 		default:
 			maxValue = 0xff
@@ -236,6 +236,29 @@ func (enc *Encoder) encodeP5(w io.Writer, m image.Image) error {
 }
 
 func (enc *Encoder) encodeP6(w io.Writer, m image.Image) error {
+	maxValue := pixmap.Model(enc.Max)
+	if maxValue == 0 {
+		switch m := m.(type) {
+		case *pixmap.Image:
+			maxValue = m.Max
+		case *image.Gray, *image.RGBA, *image.NRGBA:
+			maxValue = 0xff
+		case *image.Gray16, *image.RGBA64, *image.NRGBA64:
+			maxValue = 0xffff
+		default:
+			maxValue = 0xff
+		}
+	}
+
+	bounds := m.Bounds()
+	img := pixmap.New(bounds, maxValue)
+	clone(img, m)
+	if _, err := fmt.Fprintf(w, "P6\n%d %d\n%d\n", bounds.Dx(), bounds.Dy(), maxValue); err != nil {
+		return err
+	}
+	if _, err := w.Write(img.Pix); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -196,4 +196,39 @@ func TestEncode(t *testing.T) {
 			t.Errorf("unexpected output: got %v, want %v", got, want)
 		}
 	})
+
+	t.Run("encode raw PPM", func(t *testing.T) {
+		img := &pixmap.Image{
+			Pix: []uint8{
+				255, 0, 0,
+				0, 255, 0,
+				0, 0, 255,
+				255, 255, 0,
+				255, 255, 255,
+				0, 0, 0,
+			},
+			Stride: 9,
+			Rect:   image.Rect(0, 0, 3, 2),
+			Max:    255,
+		}
+		buf := &bytes.Buffer{}
+		if err := defaultEncoder.Encode(buf, img); err != nil {
+			t.Fatal(err)
+		}
+		want := []byte{
+			'P', '6', '\n',
+			'3', ' ', '2', '\n',
+			'2', '5', '5', '\n',
+			255, 0, 0,
+			0, 255, 0,
+			0, 0, 255,
+			255, 255, 0,
+			255, 255, 255,
+			0, 0, 0,
+		}
+		got := buf.Bytes()
+		if !bytes.Equal(got, want) {
+			t.Errorf("unexpected output: got %v, want %v", got, want)
+		}
+	})
 }
