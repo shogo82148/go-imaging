@@ -31,10 +31,10 @@ var _ color.Model = Model(0)
 
 func (m Model) Convert(c color.Color) color.Color {
 	var r, g, b uint32
-	if c, ok := c.(Color); ok {
-		r = (uint32(c.R) * uint32(m)) / uint32(c.Max)
-		g = (uint32(c.G) * uint32(m)) / uint32(c.Max)
-		b = (uint32(c.B) * uint32(m)) / uint32(c.Max)
+	if c0, ok := c.(Color); ok {
+		r = (uint32(c0.R) * uint32(m)) / uint32(c0.Max)
+		g = (uint32(c0.G) * uint32(m)) / uint32(c0.Max)
+		b = (uint32(c0.B) * uint32(m)) / uint32(c0.Max)
 	} else {
 		r, g, b, _ = c.RGBA()
 		r = (r * uint32(m)) / 0xffff

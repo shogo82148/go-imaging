@@ -53,7 +53,7 @@ func (enc *Encoder) Encode(w io.Writer, m image.Image) error {
 		case *pixmap.Image, *image.RGBA64, *image.NRGBA64, *image.RGBA, *image.NRGBA:
 			typ = TypePPM
 		default:
-			typ = TypePBM
+			typ = TypePPM
 		}
 	}
 	switch typ {
