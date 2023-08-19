@@ -8,6 +8,7 @@ import (
 
 	"github.com/shogo82148/go-imaging/bitmap"
 	"github.com/shogo82148/go-imaging/graymap"
+	"github.com/shogo82148/go-imaging/pixmap"
 )
 
 func TestDecode(t *testing.T) {
@@ -164,6 +165,100 @@ func TestDecode(t *testing.T) {
 		out.Close()
 	})
 
+	t.Run("ascii PPM 1", func(t *testing.T) {
+		// example from https://en.wikipedia.org/wiki/Netpbm#PPM_example
+		f, err := os.Open("testdata/wikipedia_example_ppm1.ppm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			255, 0, 0,
+			0, 255, 0,
+			0, 0, 255,
+			255, 255, 0,
+			255, 255, 255,
+			0, 0, 0,
+		}
+		if !bytes.Equal(img.(*pixmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*pixmap.Image).Pix)
+		}
+		if img.ColorModel() != pixmap.Model(255) {
+			t.Errorf("expected pixmap.Model(255), got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 3 {
+			t.Errorf("expected width 3, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 2 {
+			t.Errorf("expected height 2, got %d", img.Bounds().Dy())
+		}
+	})
+
+	t.Run("ascii PPM 2", func(t *testing.T) {
+		// example from https://en.wikipedia.org/wiki/Netpbm#PPM_example
+		f, err := os.Open("testdata/wikipedia_example_ppm2.ppm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			1, 0, 0, 0, 1, 0, 0, 0, 1,
+			1, 1, 0, 1, 1, 1, 0, 0, 0,
+		}
+		if !bytes.Equal(img.(*pixmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*pixmap.Image).Pix)
+		}
+		if img.ColorModel() != pixmap.Model(1) {
+			t.Errorf("expected pixmap.Model(1), got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 3 {
+			t.Errorf("expected width 3, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 2 {
+			t.Errorf("expected height 2, got %d", img.Bounds().Dy())
+		}
+	})
+
+	t.Run("ascii PPM 3", func(t *testing.T) {
+		// example from https://en.wikipedia.org/wiki/Netpbm#PPM_example
+		f, err := os.Open("testdata/wikipedia_example_ppm3.ppm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		want := []byte{
+			1, 0, 0, 0, 1, 0, 0, 0, 1,
+			1, 1, 0, 1, 1, 1, 0, 0, 0,
+		}
+		if !bytes.Equal(img.(*pixmap.Image).Pix, want) {
+			t.Errorf("expected %v, got %v", want, img.(*pixmap.Image).Pix)
+		}
+		if img.ColorModel() != pixmap.Model(1) {
+			t.Errorf("expected pixmap.Model(1), got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 3 {
+			t.Errorf("expected width 3, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 2 {
+			t.Errorf("expected height 2, got %d", img.Bounds().Dy())
+		}
+	})
+
 	t.Run("binary PBM maze", func(t *testing.T) {
 		// netpbm test data https://sourceforge.net/p/netpbm/code/HEAD/tree/trunk/test/maze.pbm
 		f, err := os.Open("testdata/maze.pbm")
@@ -211,7 +306,7 @@ func TestDecode(t *testing.T) {
 	})
 
 	t.Run("binary PGM", func(t *testing.T) {
-		// converted by GIMP.
+		// converted feep-ascii.pgm by using GIMP.
 		f, err := os.Open("testdata/feep-binary.pgm")
 		if err != nil {
 			t.Error(err)
@@ -230,6 +325,28 @@ func TestDecode(t *testing.T) {
 		}
 		if img.Bounds().Dy() != 7 {
 			t.Errorf("expected height 7, got %d", img.Bounds().Dy())
+		}
+	})
+
+	t.Run("binary PPM testimg", func(t *testing.T) {
+		f, err := os.Open("testdata/testimg.ppm")
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		img, err := Decode(f)
+		if err != nil {
+			t.Error(err)
+		}
+		if img.ColorModel() != pixmap.Model(255) {
+			t.Errorf("expected pixmap.Model(255), got %v", img.ColorModel())
+		}
+		if img.Bounds().Dx() != 227 {
+			t.Errorf("expected width 227, got %d", img.Bounds().Dx())
+		}
+		if img.Bounds().Dy() != 149 {
+			t.Errorf("expected height 149, got %d", img.Bounds().Dy())
 		}
 	})
 }

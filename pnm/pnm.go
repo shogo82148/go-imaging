@@ -14,6 +14,7 @@ import (
 
 	"github.com/shogo82148/go-imaging/bitmap"
 	"github.com/shogo82148/go-imaging/graymap"
+	"github.com/shogo82148/go-imaging/pixmap"
 )
 
 func init() {
@@ -42,10 +43,14 @@ func Decode(r io.Reader) (image.Image, error) {
 		return decodeP1(br, c)
 	case 0x5032: // P2
 		return decodeP2(br, c)
+	case 0x5033: // P3
+		return decodeP3(br, c)
 	case 0x5034: // P4
 		return decodeP4(br, c)
 	case 0x5035: // P5
 		return decodeP5(br, c)
+	case 0x5036: // P6
+		return decodeP6(br, c)
 	}
 	return nil, errors.New("pnm: unsupported format")
 }
@@ -109,6 +114,64 @@ func decodeP2(br *bufio.Reader, c config) (image.Image, error) {
 	return img, nil
 }
 
+// decodeP3 decodes a plain Portable Pix Map image.
+// See https://netpbm.sourceforge.net/doc/ppm.html
+func decodeP3(br *bufio.Reader, c config) (image.Image, error) {
+	if err := skipWhitespace(br); err != nil {
+		return nil, err
+	}
+	maxVal, err := readInt(br)
+	if err != nil {
+		return nil, err
+	}
+	if maxVal == 0 || maxVal > 0xffff {
+		return nil, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
+	}
+
+	img := pixmap.New(image.Rect(0, 0, c.Width, c.Height), pixmap.Model(maxVal))
+	for y := 0; y < c.Height; y++ {
+		for x := 0; x < c.Width; x++ {
+			if err := skipWhitespace(br); err != nil {
+				return nil, err
+			}
+			r, err := readInt(br)
+			if err != nil {
+				return nil, err
+			}
+			if r > maxVal {
+				return nil, fmt.Errorf("pnm: value %d is greater than max value %d", r, maxVal)
+			}
+			if err := skipWhitespace(br); err != nil {
+				return nil, err
+			}
+			g, err := readInt(br)
+			if err != nil {
+				return nil, err
+			}
+			if g > maxVal {
+				return nil, fmt.Errorf("pnm: value %d is greater than max value %d", g, maxVal)
+			}
+			if err := skipWhitespace(br); err != nil {
+				return nil, err
+			}
+			b, err := readInt(br)
+			if err != nil {
+				return nil, err
+			}
+			if b > maxVal {
+				return nil, fmt.Errorf("pnm: value %d is greater than max value %d", b, maxVal)
+			}
+			img.Set(x, y, pixmap.Color{
+				R:   uint16(r),
+				G:   uint16(g),
+				B:   uint16(b),
+				Max: pixmap.Model(maxVal),
+			})
+		}
+	}
+	return img, nil
+}
+
 // decodeP4 decodes a raw Portable Bit Map image.
 // See https://netpbm.sourceforge.net/doc/pbm.html
 func decodeP4(br *bufio.Reader, c config) (image.Image, error) {
@@ -157,6 +220,41 @@ func decodeP5(br *bufio.Reader, c config) (image.Image, error) {
 		Stride: stride,
 		Rect:   image.Rect(0, 0, c.Width, c.Height),
 		Max:    graymap.Model(maxVal),
+	}, nil
+}
+
+// decodeP6 decodes a raw Portable Pix Map image.
+// See https://netpbm.sourceforge.net/doc/ppm.html
+func decodeP6(br *bufio.Reader, c config) (image.Image, error) {
+	if err := skipWhitespace(br); err != nil {
+		return nil, err
+	}
+	maxVal, err := readInt(br)
+	if err != nil {
+		return nil, err
+	}
+	if maxVal == 0 || maxVal > 0xffff {
+		return nil, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
+	}
+
+	if err := skipOneWhitespace(br); err != nil {
+		return nil, err
+	}
+
+	stride := c.Width * 3
+	if maxVal >= 256 {
+		stride *= 2
+	}
+	buf := make([]byte, stride*c.Height)
+	if _, err := io.ReadFull(br, buf); err != nil {
+		return nil, err
+	}
+
+	return &pixmap.Image{
+		Pix:    buf,
+		Stride: stride,
+		Rect:   image.Rect(0, 0, c.Width, c.Height),
+		Max:    pixmap.Model(maxVal),
 	}, nil
 }
 
