@@ -7,6 +7,7 @@ import (
 
 	"github.com/shogo82148/go-imaging/bitmap"
 	"github.com/shogo82148/go-imaging/graymap"
+	"github.com/shogo82148/go-imaging/pixmap"
 )
 
 func TestEncode(t *testing.T) {
@@ -81,6 +82,36 @@ func TestEncode(t *testing.T) {
 0 3 0 0 0 0 0 7 0 0 0 0 0 11 0 0 0 0 0 15 0 0 0 0
 0 3 0 0 0 0 0 7 7 7 7 0 0 11 11 11 11 0 0 15 0 0 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+`
+		got := buf.String()
+		if got != want {
+			t.Errorf("unexpected output: got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("encode plain PPM", func(t *testing.T) {
+		img := &pixmap.Image{
+			Pix: []uint8{
+				255, 0, 0,
+				0, 255, 0,
+				0, 0, 255,
+				255, 255, 0,
+				255, 255, 255,
+				0, 0, 0,
+			},
+			Stride: 9,
+			Rect:   image.Rect(0, 0, 3, 2),
+			Max:    255,
+		}
+		buf := &bytes.Buffer{}
+		if err := plainEncoder.Encode(buf, img); err != nil {
+			t.Fatal(err)
+		}
+		want := `P3
+3 2
+255
+255 0 0 0 255 0 0 0 255
+255 255 0 255 255 255 0 0 0
 `
 		got := buf.String()
 		if got != want {
