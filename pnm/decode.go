@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"io"
 	"math"
+	"math/bits"
 
 	"github.com/shogo82148/go-imaging/bitmap"
 	"github.com/shogo82148/go-imaging/graymap"
@@ -269,6 +270,32 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 	switch c.MagicNumber {
 	case 0x5031, 0x5034: // P1, P4
 		m = bitmap.ColorModel
+	case 0x5032, 0x5035: // P2, P5
+		if err := skipWhitespace(br); err != nil {
+			return image.Config{}, err
+		}
+		maxVal, err := readInt(br)
+		if err != nil {
+			return image.Config{}, err
+		}
+		if maxVal == 0 || maxVal > 0xffff {
+			return image.Config{}, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
+		}
+		m = graymap.Model(maxVal)
+	case 0x5033, 0x5036: // P3, P6
+		if err := skipWhitespace(br); err != nil {
+			return image.Config{}, err
+		}
+		maxVal, err := readInt(br)
+		if err != nil {
+			return image.Config{}, err
+		}
+		if maxVal == 0 || maxVal > 0xffff {
+			return image.Config{}, fmt.Errorf("pnm: unsupported max value: %d", maxVal)
+		}
+		m = pixmap.Model(maxVal)
+	default:
+		return image.Config{}, errors.New("pnm: unsupported format")
 	}
 	return image.Config{
 		ColorModel: m,
@@ -296,6 +323,9 @@ func decodeConfig(br *bufio.Reader) (config, error) {
 	if err != nil {
 		return config{}, err
 	}
+	if width <= 0 {
+		return config{}, fmt.Errorf("pnm: invalid width: %d", width)
+	}
 
 	// read height
 	if err := skipWhitespace(br); err != nil {
@@ -304,6 +334,14 @@ func decodeConfig(br *bufio.Reader) (config, error) {
 	height, err := readInt(br)
 	if err != nil {
 		return config{}, err
+	}
+	if height <= 0 {
+		return config{}, fmt.Errorf("pnm: invalid height: %d", height)
+	}
+
+	hi, lo := bits.Mul64(uint64(width), uint64(height))
+	if hi != 0 || lo > 1<<30 {
+		return config{}, errors.New("pnm: too large image")
 	}
 
 	return config{
