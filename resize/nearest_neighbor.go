@@ -16,15 +16,19 @@ func NearestNeighbor(dst, src *image.NRGBA64) {
 
 	for y := 0; y < dstDy; y++ {
 		for x := 0; x < dstDx; x++ {
-			dst.SetNRGBA64(x+dstBounds.Min.X, y+dstBounds.Min.Y, src.NRGBA64At(
-				mulDiv(x, srcDx-1, dstDx-1),
-				mulDiv(y, srcDy-1, dstDy-1),
-			))
+			dst.SetNRGBA64(
+				x+dstBounds.Min.X,
+				y+dstBounds.Min.Y,
+				src.NRGBA64At(
+					mulDivRound(x, srcDx-1, dstDx-1),
+					mulDivRound(y, srcDy-1, dstDy-1),
+				),
+			)
 		}
 	}
 }
 
-func mulDiv(a, b, c int) int {
+func mulDivRound(a, b, c int) int {
 	hi, lo := bits.Mul64(uint64(a), uint64(b))
 
 	// round to nearest
