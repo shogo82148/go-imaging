@@ -27,3 +27,12 @@ func TestNearestNeighbor(t *testing.T) {
 `)
 	testutils.Compare(t, dst, want)
 }
+
+func BenchmarkNearestNeighbor(b *testing.B) {
+	dst := image.NewNRGBA64(image.Rect(0, 0, 512, 512))
+	src := image.NewNRGBA64(image.Rect(0, 0, 256, 256))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		NearestNeighbor(dst, src)
+	}
+}

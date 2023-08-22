@@ -6,6 +6,7 @@ import (
 	"math/bits"
 )
 
+// BiLinear resizes the image using bilinear interpolation.
 func BiLinear(dst, src *image.NRGBA64) {
 	dstBounds := dst.Bounds()
 	dstDx := dstBounds.Dx()
