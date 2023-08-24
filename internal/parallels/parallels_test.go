@@ -4,8 +4,19 @@ import (
 	"fmt"
 	"image"
 	"sync"
+	"sync/atomic"
 	"testing"
 )
+
+func TestParallel(t *testing.T) {
+	var count int32
+	Parallel(0, 65536, func(i int) {
+		atomic.AddInt32(&count, 1)
+	})
+	if got, want := count, int32(65536); got != want {
+		t.Errorf("unexpected count: got %v, want %v", got, want)
+	}
+}
 
 // Experimental function for comparing performance.
 func parallel1(from, to, n int, f func(from, to int)) {
