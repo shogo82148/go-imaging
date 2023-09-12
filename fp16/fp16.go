@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math/bits"
 
+	"github.com/shogo82148/float16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
 
@@ -45,7 +46,47 @@ func (p *NRGBAh) At(x, y int) color.Color {
 }
 
 func (p *NRGBAh) NRGBAhAt(x, y int) fp16color.NRGBAh {
-	return fp16color.NRGBAh{}
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return fp16color.NRGBAh{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+8 : i+8]
+	r := uint16(s[0])<<8 | uint16(s[1])
+	g := uint16(s[2])<<8 | uint16(s[3])
+	b := uint16(s[4])<<8 | uint16(s[5])
+	a := uint16(s[6])<<8 | uint16(s[7])
+	return fp16color.NRGBAh{
+		R: float16.FromBits(r),
+		G: float16.FromBits(g),
+		B: float16.FromBits(b),
+		A: float16.FromBits(a),
+	}
+}
+
+func (p NRGBAh) SetNRGBAhAt(x, y int, c fp16color.NRGBAh) {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+8 : i+8]
+	r := c.R.Bits()
+	s[0] = uint8(r >> 8)
+	s[1] = uint8(r)
+	g := c.G.Bits()
+	s[2] = uint8(g >> 8)
+	s[3] = uint8(g)
+	b := c.B.Bits()
+	s[4] = uint8(b >> 8)
+	s[5] = uint8(b)
+	a := c.A.Bits()
+	s[6] = uint8(a >> 8)
+	s[7] = uint8(a)
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y).
+func (p *NRGBAh) PixOffset(x, y int) int {
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*8
 }
 
 // pixelBufferLength returns the length of the []uint8 typed Pix slice field

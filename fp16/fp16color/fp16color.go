@@ -12,6 +12,14 @@ type RGBAh struct {
 	R, G, B, A float16.Float16
 }
 
+func NewRGBAh(r, g, b, a float64) RGBAh {
+	fr := float16.FromFloat64(r)
+	fg := float16.FromFloat64(g)
+	fb := float16.FromFloat64(b)
+	fa := float16.FromFloat64(a)
+	return RGBAh{fr, fg, fb, fa}
+}
+
 func (c RGBAh) RGBA() (r, g, b, a uint32) {
 	r = uint32(c.R.Float64() * 0xffff)
 	g = uint32(c.G.Float64() * 0xffff)
@@ -41,6 +49,14 @@ var _ color.Color = NRGBAh{}
 // having 16 bits float for each of red, green, blue and alpha.
 type NRGBAh struct {
 	R, G, B, A float16.Float16
+}
+
+func NewNRGBAh(r, g, b, a float64) NRGBAh {
+	fr := float16.FromFloat64(r)
+	fg := float16.FromFloat64(g)
+	fb := float16.FromFloat64(b)
+	fa := float16.FromFloat64(a)
+	return NRGBAh{fr, fg, fb, fa}
 }
 
 func (c NRGBAh) RGBA() (r, g, b, a uint32) {
