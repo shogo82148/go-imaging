@@ -44,7 +44,7 @@ func decodeRGBA(img *image.RGBA) *fp16.NRGBAh {
 			fr = encodedToLinear(fr)
 			fg = encodedToLinear(fg)
 			fb = encodedToLinear(fb)
-			ret.SetNRGBAhAt(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
@@ -68,7 +68,7 @@ func decodeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 			fr = encodedToLinear(fr)
 			fg = encodedToLinear(fg)
 			fb = encodedToLinear(fb)
-			ret.SetNRGBAhAt(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
@@ -93,7 +93,7 @@ func decode(img image.Image) *fp16.NRGBAh {
 			fr = encodedToLinear(fr)
 			fg = encodedToLinear(fg)
 			fb = encodedToLinear(fb)
-			ret.SetNRGBAhAt(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret

@@ -63,7 +63,7 @@ func (p *NRGBAh) NRGBAhAt(x, y int) fp16color.NRGBAh {
 	}
 }
 
-func (p NRGBAh) SetNRGBAhAt(x, y int, c fp16color.NRGBAh) {
+func (p NRGBAh) SetNRGBAh(x, y int, c fp16color.NRGBAh) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
