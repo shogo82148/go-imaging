@@ -47,8 +47,8 @@ var encodedToLinearTable16 = [65536]float16.Float16{
 	`)
 	for i := 0; i < 0x10000; i++ {
 		v := float16.FromBits(uint16(i)).Float64()
-		v = linearToEncoded(v)
-		fmt.Fprintf(buf, "0x%04x, // %.3x\n", uint16(v*0xffff), v)
+		w := linearToEncoded(max(0, min(1, v)))
+		fmt.Fprintf(buf, "0x%04x, // %.3x\n", uint16(math.RoundToEven(w*0xffff)), v)
 	}
 	fmt.Fprint(buf, "}\n\n")
 
