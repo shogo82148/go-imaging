@@ -1,0 +1,4 @@
+github.com/shogo82148/float16 v0.0.0-20230828124421-9900de48ac01 h1:CRMHyL6uJJ5rXJMUTZAOXGen1XzvFX2KJwYxJmJmaDQ=
+github.com/shogo82148/float16 v0.0.0-20230828124421-9900de48ac01/go.mod h1:kG/Pe1lLVxHGfeYhNLNlCPYt8YBFyY8U0rYiZbuug9w=
+github.com/shogo82148/float16 v0.3.0 h1:hKX98oJNi3qx3b46XG+SpXSOuPiascG++Bn4nK2i4/U=
+github.com/shogo82148/float16 v0.3.0/go.mod h1:kG/Pe1lLVxHGfeYhNLNlCPYt8YBFyY8U0rYiZbuug9w=
