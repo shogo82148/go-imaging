@@ -20,6 +20,8 @@ func Decode(img image.Image) *fp16.NRGBAh {
 	switch img := img.(type) {
 	case *image.RGBA:
 		return decodeRGBA(img)
+	case *image.RGBA64:
+		return decodeRGBA64(img)
 	}
 	return decode(img)
 }
@@ -34,6 +36,30 @@ func decodeRGBA(img *image.RGBA) *fp16.NRGBAh {
 			fg := float64(c.G) / 0xff
 			fb := float64(c.B) / 0xff
 			fa := float64(c.A) / 0xff
+			if fa != 0 {
+				fr /= fa
+				fg /= fa
+				fb /= fa
+			}
+			fr = encodedToLinear(fr)
+			fg = encodedToLinear(fg)
+			fb = encodedToLinear(fb)
+			ret.SetNRGBAhAt(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+		}
+	})
+	return ret
+}
+
+func decodeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.RGBA64At(x, y)
+			fr := float64(c.R) / 0xffff
+			fg := float64(c.G) / 0xffff
+			fb := float64(c.B) / 0xffff
+			fa := float64(c.A) / 0xffff
 			if fa != 0 {
 				fr /= fa
 				fg /= fa
