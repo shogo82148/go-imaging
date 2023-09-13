@@ -10,10 +10,10 @@ import (
 
 func TestNRGBAhAt(t *testing.T) {
 	img := NewNRGBAh(image.Rect(0, 0, 2, 2))
-	img.SetNRGBAhAt(0, 0, fp16color.NewNRGBAh(0, 0, 0, 0))
-	img.SetNRGBAhAt(1, 0, fp16color.NewNRGBAh(1, 1, 1, 1))
-	img.SetNRGBAhAt(0, 1, fp16color.NewNRGBAh(0.5, 0.5, 0.5, 1))
-	img.SetNRGBAhAt(1, 1, fp16color.NewNRGBAh(0.75, 0.25, 0.3, 1))
+	img.SetNRGBAh(0, 0, fp16color.NewNRGBAh(0, 0, 0, 0))
+	img.SetNRGBAh(1, 0, fp16color.NewNRGBAh(1, 1, 1, 1))
+	img.SetNRGBAh(0, 1, fp16color.NewNRGBAh(0.5, 0.5, 0.5, 1))
+	img.SetNRGBAh(1, 1, fp16color.NewNRGBAh(0.75, 0.25, 0.3, 1))
 
 	got := img.Pix
 	want := []byte{

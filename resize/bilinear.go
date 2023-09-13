@@ -1,13 +1,16 @@
 package resize
 
 import (
-	"image"
-	"image/color"
 	"math/bits"
+
+	"github.com/shogo82148/float16"
+	"github.com/shogo82148/go-imaging/fp16"
+	"github.com/shogo82148/go-imaging/fp16/fp16color"
+	"github.com/shogo82148/go-imaging/internal/parallels"
 )
 
 // BiLinear resizes the image using bilinear interpolation.
-func BiLinear(dst, src *image.NRGBA64) {
+func BiLinear(dst, src *fp16.NRGBAh) {
 	dstBounds := dst.Bounds()
 	dstDx := dstBounds.Dx()
 	dstDy := dstBounds.Dy()
@@ -15,24 +18,24 @@ func BiLinear(dst, src *image.NRGBA64) {
 	srcDx := srcBounds.Dx()
 	srcDy := srcBounds.Dy()
 
-	for y := 0; y < dstDy; y++ {
+	parallels.Parallel(dstBounds.Min.Y, dstBounds.Max.Y, func(y int) {
 		for x := 0; x < dstDx; x++ {
-			var c color.NRGBA64
+			var c fp16color.NRGBAh
 			srcX, remX := mulDiv(x, srcDx-1, dstDx-1)
 			srcY, remY := mulDiv(y, srcDy-1, dstDy-1)
 			dx := float64(remX) / float64(dstDx-1)
 			dy := float64(remY) / float64(dstDy-1)
-			c0 := src.NRGBA64At(srcX, srcY)
-			c1 := src.NRGBA64At(srcX+1, srcY)
-			c2 := src.NRGBA64At(srcX, srcY+1)
-			c3 := src.NRGBA64At(srcX+1, srcY+1)
+			c0 := src.NRGBAhAt(srcX, srcY)
+			c1 := src.NRGBAhAt(srcX+1, srcY)
+			c2 := src.NRGBAhAt(srcX, srcY+1)
+			c3 := src.NRGBAhAt(srcX+1, srcY+1)
 			c.R = bilinear(c0.R, c1.R, c2.R, c3.R, dx, dy)
 			c.G = bilinear(c0.G, c1.G, c2.G, c3.G, dx, dy)
 			c.B = bilinear(c0.B, c1.B, c2.B, c3.B, dx, dy)
 			c.A = bilinear(c0.A, c1.A, c2.A, c3.A, dx, dy)
-			dst.SetNRGBA64(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
+			dst.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
 		}
-	}
+	})
 }
 
 // mulDiv returns a * b / c.
@@ -42,12 +45,10 @@ func mulDiv(a, b, c int) (int, int) {
 	return int(quo), int(rem)
 }
 
-func bilinear(c0, c1, c2, c3 uint16, dx, dy float64) uint16 {
-	return uint16(
-		float64(c0)*(1-dx)*(1-dy) +
-			float64(c1)*dx*(1-dy) +
-			float64(c2)*(1-dx)*dy +
-			float64(c3)*dx*dy +
-			0.5,
-	)
+func bilinear(c0, c1, c2, c3 float16.Float16, dx, dy float64) float16.Float16 {
+	return float16.FromFloat64(c0.Float64()*(1-dx)*(1-dy) +
+		c1.Float64()*dx*(1-dy) +
+		c2.Float64()*(1-dx)*dy +
+		c3.Float64()*dx*dy +
+		0.5)
 }
