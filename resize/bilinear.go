@@ -49,6 +49,6 @@ func bilinear(c0, c1, c2, c3 float16.Float16, dx, dy float64) float16.Float16 {
 	return float16.FromFloat64(c0.Float64()*(1-dx)*(1-dy) +
 		c1.Float64()*dx*(1-dy) +
 		c2.Float64()*(1-dx)*dy +
-		c3.Float64()*dx*dy +
-		0.5)
+		c3.Float64()*dx*dy,
+	)
 }
