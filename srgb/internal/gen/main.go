@@ -7,6 +7,8 @@ import (
 	"log"
 	"math"
 	"os"
+
+	"github.com/shogo82148/float16"
 )
 
 func main() {
@@ -15,24 +17,28 @@ func main() {
 
 package srgb
 
+import "github.com/shogo82148/float16"
+
 // encodedToLinearTable8 converts 8-bit sRGB encoded value to 16-bit linear value.
-var encodedToLinearTable8 = [256]uint16{
+var encodedToLinearTable8 = [256]float16.Float16{
 `)
 
 	for i := 0; i < 0x100; i++ {
 		v := float64(i) / 0xff
 		v = encodedToLinear(v)
-		fmt.Fprintf(buf, "0x%04x,\n", int(math.Round(v*0xffff)))
+		fp16 := float16.FromFloat64(v)
+		fmt.Fprintf(buf, "0x%04x, // %.3x\n", fp16.Bits(), fp16.Float64())
 	}
 	fmt.Fprint(buf, "}\n\n")
 
 	fmt.Fprint(buf, `// encodedToLinearTable16 converts 16-bit sRGB encoded value to 16-bit linear value.
-var encodedToLinearTable16 = [65536]uint16{
+var encodedToLinearTable16 = [65536]float16.Float16{
 `)
 	for i := 0; i < 0x10000; i++ {
 		v := float64(i) / 0xffff
 		v = encodedToLinear(v)
-		fmt.Fprintf(buf, "0x%04x,\n", int(math.Round(v*0xffff)))
+		fp16 := float16.FromFloat64(v)
+		fmt.Fprintf(buf, "0x%04x, // %.3x\n", fp16.Bits(), fp16.Float64())
 	}
 	fmt.Fprint(buf, "}\n\n")
 
@@ -40,9 +46,9 @@ var encodedToLinearTable16 = [65536]uint16{
 	var linearToEncodedTable16 = [65536]uint16{
 	`)
 	for i := 0; i < 0x10000; i++ {
-		v := float64(i) / 0xffff
+		v := float16.FromBits(uint16(i)).Float64()
 		v = linearToEncoded(v)
-		fmt.Fprintf(buf, "0x%04x,\n", int(math.Round(v*0xffff)))
+		fmt.Fprintf(buf, "0x%04x, // %.3x\n", uint16(v*0xffff), v)
 	}
 	fmt.Fprint(buf, "}\n\n")
 
