@@ -32,11 +32,15 @@ func main() {
 	resize2x(filepath.Join(dir, "plush_bilinear_2x.png"), plush, resize.BiLinear)
 	resize2x(filepath.Join(dir, "autumn_nearest_neighbor_2x.png"), autumn, resize.NearestNeighbor)
 	resize2x(filepath.Join(dir, "plush_nearest_neighbor_2x.png"), plush, resize.NearestNeighbor)
+	resize2x(filepath.Join(dir, "autumn_hermite_2x.png"), autumn, resize.Hermite)
+	resize2x(filepath.Join(dir, "plush_hermite_2x.png"), plush, resize.Hermite)
 
 	resize0_5x(filepath.Join(dir, "autumn_bilinear_0.5x.png"), autumn, resize.BiLinear)
 	resize0_5x(filepath.Join(dir, "plush_bilinear_0.5x.png"), plush, resize.BiLinear)
 	resize0_5x(filepath.Join(dir, "autumn_nearest_neighbor_0.5x.png"), autumn, resize.NearestNeighbor)
 	resize0_5x(filepath.Join(dir, "plush_nearest_neighbor_0.5x.png"), plush, resize.NearestNeighbor)
+	resize0_5x(filepath.Join(dir, "autumn_hermite_0.5x.png"), autumn, resize.Hermite)
+	resize0_5x(filepath.Join(dir, "plush_hermite_0.5x.png"), plush, resize.Hermite)
 }
 
 func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NRGBAh)) error {
