@@ -34,6 +34,8 @@ func main() {
 	resize2x(filepath.Join(dir, "plush_nearest_neighbor_2x.png"), plush, resize.NearestNeighbor)
 	resize2x(filepath.Join(dir, "autumn_hermite_2x.png"), autumn, resize.Hermite)
 	resize2x(filepath.Join(dir, "plush_hermite_2x.png"), plush, resize.Hermite)
+	resize2x(filepath.Join(dir, "autumn_general_2x.png"), autumn, resize.General)
+	resize2x(filepath.Join(dir, "plush_general_2x.png"), plush, resize.General)
 
 	resize0_5x(filepath.Join(dir, "autumn_bilinear_0.5x.png"), autumn, resize.BiLinear)
 	resize0_5x(filepath.Join(dir, "plush_bilinear_0.5x.png"), plush, resize.BiLinear)
