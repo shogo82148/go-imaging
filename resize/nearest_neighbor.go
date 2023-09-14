@@ -16,7 +16,7 @@ func NearestNeighbor(dst, src *fp16.NRGBAh) {
 	srcDx := srcBounds.Dx()
 	srcDy := srcBounds.Dy()
 
-	parallels.Parallel(dstBounds.Min.Y, dstBounds.Max.Y, func(y int) {
+	parallels.Parallel(0, dstDy, func(y int) {
 		for x := 0; x < dstDx; x++ {
 			dst.SetNRGBAh(
 				x+dstBounds.Min.X,
