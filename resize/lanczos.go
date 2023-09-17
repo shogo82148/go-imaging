@@ -190,33 +190,33 @@ func lanczos(x, lobe float64) float64 {
 
 func lanczos2(c0, c1, c2, c3 float16.Float16, d float64) float16.Float16 {
 	var c float64
-	c = math.FMA(c, lanczos(d+1, 2), c0.Float64())
-	c = math.FMA(c, lanczos(d+0, 2), c1.Float64())
-	c = math.FMA(c, lanczos(d-1, 2), c2.Float64())
-	c = math.FMA(c, lanczos(d-2, 2), c3.Float64())
+	c = math.FMA(lanczos(d+1, 2), c0.Float64(), c)
+	c = math.FMA(lanczos(d+0, 2), c1.Float64(), c)
+	c = math.FMA(lanczos(d-1, 2), c2.Float64(), c)
+	c = math.FMA(lanczos(d-2, 2), c3.Float64(), c)
 	return float16.FromFloat64(c)
 }
 
 func lanczos3(c0, c1, c2, c3, c4, c5 float16.Float16, d float64) float16.Float16 {
 	var c float64
-	c = math.FMA(c, lanczos(d+2, 3), c0.Float64())
-	c = math.FMA(c, lanczos(d+1, 3), c1.Float64())
-	c = math.FMA(c, lanczos(d+0, 3), c2.Float64())
-	c = math.FMA(c, lanczos(d-1, 3), c3.Float64())
-	c = math.FMA(c, lanczos(d-2, 3), c4.Float64())
-	c = math.FMA(c, lanczos(d-3, 3), c5.Float64())
+	c = math.FMA(lanczos(d+2, 3), c0.Float64(), c)
+	c = math.FMA(lanczos(d+1, 3), c1.Float64(), c)
+	c = math.FMA(lanczos(d+0, 3), c2.Float64(), c)
+	c = math.FMA(lanczos(d-1, 3), c3.Float64(), c)
+	c = math.FMA(lanczos(d-2, 3), c4.Float64(), c)
+	c = math.FMA(lanczos(d-3, 3), c5.Float64(), c)
 	return float16.FromFloat64(c)
 }
 
 func lanczos4(c0, c1, c2, c3, c4, c5, c6, c7 float16.Float16, d float64) float16.Float16 {
 	var c float64
-	c = math.FMA(c, lanczos(d+3, 4), c0.Float64())
-	c = math.FMA(c, lanczos(d+2, 4), c1.Float64())
-	c = math.FMA(c, lanczos(d+1, 4), c2.Float64())
-	c = math.FMA(c, lanczos(d+0, 4), c3.Float64())
-	c = math.FMA(c, lanczos(d-1, 4), c4.Float64())
-	c = math.FMA(c, lanczos(d-2, 4), c5.Float64())
-	c = math.FMA(c, lanczos(d-3, 4), c6.Float64())
-	c = math.FMA(c, lanczos(d-4, 4), c7.Float64())
+	c = math.FMA(lanczos(d+3, 4), c0.Float64(), c)
+	c = math.FMA(lanczos(d+2, 4), c1.Float64(), c)
+	c = math.FMA(lanczos(d+1, 4), c2.Float64(), c)
+	c = math.FMA(lanczos(d+0, 4), c3.Float64(), c)
+	c = math.FMA(lanczos(d-1, 4), c4.Float64(), c)
+	c = math.FMA(lanczos(d-2, 4), c5.Float64(), c)
+	c = math.FMA(lanczos(d-3, 4), c6.Float64(), c)
+	c = math.FMA(lanczos(d-4, 4), c7.Float64(), c)
 	return float16.FromFloat64(c)
 }
