@@ -45,7 +45,7 @@ func general(c0, c1, c2, c3 float16.Float16, d float64, coeff []float64) float16
 // nearest point if the point is out of bounds.
 func nrgbhAt(img *fp16.NRGBAh, x, y int) fp16color.NRGBAh {
 	bounds := img.Bounds()
-	x = max(bounds.Min.X, min(bounds.Max.X, x))
-	y = max(bounds.Min.Y, min(bounds.Max.Y, y))
+	x = max(bounds.Min.X, min(bounds.Max.X-1, x))
+	y = max(bounds.Min.Y, min(bounds.Max.Y-1, y))
 	return img.NRGBAhAt(x, y)
 }
