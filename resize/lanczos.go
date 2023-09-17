@@ -36,7 +36,7 @@ func Lanczos2(dst, src *fp16.NRGBAh) {
 			c.G = lanczos2(c0.G, c1.G, c2.G, c3.G, d)
 			c.B = lanczos2(c0.B, c1.B, c2.B, c3.B, d)
 			c.A = lanczos2(c0.A, c1.A, c2.A, c3.A, d)
-			tmp.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
+			tmp.SetNRGBAh(x, y, c)
 		}
 	})
 
@@ -88,7 +88,7 @@ func Lanczos3(dst, src *fp16.NRGBAh) {
 			c.G = lanczos3(c0.G, c1.G, c2.G, c3.G, c4.G, c5.G, d)
 			c.B = lanczos3(c0.B, c1.B, c2.B, c3.B, c4.B, c5.B, d)
 			c.A = lanczos3(c0.A, c1.A, c2.A, c3.A, c4.A, c5.A, d)
-			tmp.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
+			tmp.SetNRGBAh(x, y, c)
 		}
 	})
 
@@ -144,7 +144,7 @@ func Lanczos4(dst, src *fp16.NRGBAh) {
 			c.G = lanczos4(c0.G, c1.G, c2.G, c3.G, c4.G, c5.G, c6.G, c7.G, d)
 			c.B = lanczos4(c0.B, c1.B, c2.B, c3.B, c4.B, c5.B, c6.B, c7.B, d)
 			c.A = lanczos4(c0.A, c1.A, c2.A, c3.A, c4.A, c5.A, c6.A, c7.A, d)
-			tmp.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
+			tmp.SetNRGBAh(x, y, c)
 		}
 	})
 

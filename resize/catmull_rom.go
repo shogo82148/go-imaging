@@ -35,7 +35,7 @@ func CatmullRom(dst, src *fp16.NRGBAh) {
 			c.G = general(c0.G, c1.G, c2.G, c3.G, d, coeff)
 			c.B = general(c0.B, c1.B, c2.B, c3.B, d, coeff)
 			c.A = general(c0.A, c1.A, c2.A, c3.A, d, coeff)
-			tmp.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, c)
+			tmp.SetNRGBAh(x, y, c)
 		}
 	})
 
