@@ -16,18 +16,21 @@ func Hermite(dst, src *fp16.NRGBAh) {
 	srcDx := srcBounds.Dx()
 	srcDy := srcBounds.Dy()
 
-	parallels.Parallel(dstBounds.Min.Y, dstBounds.Max.Y, func(y int) {
+	parallels.Parallel(0, dstDy, func(y int) {
 		for x := 0; x < dstDx; x++ {
 			var c fp16color.NRGBAh
 			srcX, remX := mulDiv(x, srcDx-1, dstDx-1)
 			srcY, remY := mulDiv(y, srcDy-1, dstDy-1)
 			dx0 := float64(remX) / float64(dstDx-1)
 			dy0 := float64(remY) / float64(dstDy-1)
-			c0 := src.NRGBAhAt(srcX, srcY)
-			c1 := src.NRGBAhAt(srcX+1, srcY)
-			c2 := src.NRGBAhAt(srcX, srcY+1)
-			c3 := src.NRGBAhAt(srcX+1, srcY+1)
+			c0 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY)
+			c1 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY)
+			c2 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY+1)
+			c3 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY+1)
 
+			// https://qiita.com/yoya/items/f167b2598fec98679422
+			// https://legacy.imagemagick.org/Usage/filter/#mitchell
+			// https://www.cs.utexas.edu/~fussell/courses/cs384g-fall2013/lectures/mitchell/Mitchell.pdf
 			dx1 := 1 - dx0
 			dy1 := 1 - dy0
 			kx0 := dx0*dx0*(2*dx0-3) + 1

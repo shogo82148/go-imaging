@@ -18,17 +18,17 @@ func BiLinear(dst, src *fp16.NRGBAh) {
 	srcDx := srcBounds.Dx()
 	srcDy := srcBounds.Dy()
 
-	parallels.Parallel(dstBounds.Min.Y, dstBounds.Max.Y, func(y int) {
+	parallels.Parallel(0, dstDy, func(y int) {
 		for x := 0; x < dstDx; x++ {
 			var c fp16color.NRGBAh
 			srcX, remX := mulDiv(x, srcDx-1, dstDx-1)
 			srcY, remY := mulDiv(y, srcDy-1, dstDy-1)
 			dx := float64(remX) / float64(dstDx-1)
 			dy := float64(remY) / float64(dstDy-1)
-			c0 := src.NRGBAhAt(srcX, srcY)
-			c1 := src.NRGBAhAt(srcX+1, srcY)
-			c2 := src.NRGBAhAt(srcX, srcY+1)
-			c3 := src.NRGBAhAt(srcX+1, srcY+1)
+			c0 := src.NRGBAhAt(srcBounds.Min.X+srcX+0, srcBounds.Min.Y+srcY+0)
+			c1 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY+0)
+			c2 := src.NRGBAhAt(srcBounds.Min.X+srcX+0, srcBounds.Min.Y+srcY+1)
+			c3 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY+1)
 			c.R = bilinear(c0.R, c1.R, c2.R, c3.R, dx, dy)
 			c.G = bilinear(c0.G, c1.G, c2.G, c3.G, dx, dy)
 			c.B = bilinear(c0.B, c1.B, c2.B, c3.B, dx, dy)
