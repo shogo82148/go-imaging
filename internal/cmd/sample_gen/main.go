@@ -38,6 +38,8 @@ func main() {
 	resize2x(filepath.Join(dir, "plush_general_2x.png"), plush, resize.General)
 	resize2x(filepath.Join(dir, "autumn_catmull_rom_2x.png"), autumn, resize.CatmullRom)
 	resize2x(filepath.Join(dir, "plush_catmull_rom_2x.png"), plush, resize.CatmullRom)
+	resize2x(filepath.Join(dir, "autumn_mitchell_2x.png"), autumn, resize.Mitchell)
+	resize2x(filepath.Join(dir, "plush_mitchell_rom_2x.png"), plush, resize.Mitchell)
 
 	resize0_5x(filepath.Join(dir, "autumn_bilinear_0.5x.png"), autumn, resize.BiLinear)
 	resize0_5x(filepath.Join(dir, "plush_bilinear_0.5x.png"), plush, resize.BiLinear)
@@ -47,6 +49,8 @@ func main() {
 	resize0_5x(filepath.Join(dir, "plush_hermite_0.5x.png"), plush, resize.Hermite)
 	resize0_5x(filepath.Join(dir, "autumn_catmull_rom_0.5x.png"), autumn, resize.CatmullRom)
 	resize0_5x(filepath.Join(dir, "plush_catmull_rom_0.5x.png"), plush, resize.CatmullRom)
+	resize0_5x(filepath.Join(dir, "autumn_mitchell_0.5x.png"), autumn, resize.Mitchell)
+	resize0_5x(filepath.Join(dir, "plush_mitchell_0.5x.png"), plush, resize.Mitchell)
 }
 
 func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NRGBAh)) error {
