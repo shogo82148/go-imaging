@@ -39,7 +39,13 @@ func main() {
 	resize2x(filepath.Join(dir, "autumn_catmull_rom_2x.png"), autumn, resize.CatmullRom)
 	resize2x(filepath.Join(dir, "plush_catmull_rom_2x.png"), plush, resize.CatmullRom)
 	resize2x(filepath.Join(dir, "autumn_mitchell_2x.png"), autumn, resize.Mitchell)
-	resize2x(filepath.Join(dir, "plush_mitchell_rom_2x.png"), plush, resize.Mitchell)
+	resize2x(filepath.Join(dir, "plush_mitchell_2x.png"), plush, resize.Mitchell)
+	resize2x(filepath.Join(dir, "autumn_lanczos2_2x.png"), autumn, resize.Lanczos2)
+	resize2x(filepath.Join(dir, "plush_lanczos2_2x.png"), plush, resize.Lanczos2)
+	resize2x(filepath.Join(dir, "autumn_lanczos3_2x.png"), autumn, resize.Lanczos3)
+	resize2x(filepath.Join(dir, "plush_lanczos3_2x.png"), plush, resize.Lanczos3)
+	resize2x(filepath.Join(dir, "autumn_lanczos4_2x.png"), autumn, resize.Lanczos4)
+	resize2x(filepath.Join(dir, "plush_lanczos4_2x.png"), plush, resize.Lanczos4)
 
 	resize0_5x(filepath.Join(dir, "autumn_bilinear_0.5x.png"), autumn, resize.BiLinear)
 	resize0_5x(filepath.Join(dir, "plush_bilinear_0.5x.png"), plush, resize.BiLinear)
@@ -51,6 +57,12 @@ func main() {
 	resize0_5x(filepath.Join(dir, "plush_catmull_rom_0.5x.png"), plush, resize.CatmullRom)
 	resize0_5x(filepath.Join(dir, "autumn_mitchell_0.5x.png"), autumn, resize.Mitchell)
 	resize0_5x(filepath.Join(dir, "plush_mitchell_0.5x.png"), plush, resize.Mitchell)
+	resize0_5x(filepath.Join(dir, "autumn_lanczos2_0.5x.png"), autumn, resize.Lanczos2)
+	resize0_5x(filepath.Join(dir, "plush_lanczos2_0.5x.png"), plush, resize.Lanczos2)
+	resize0_5x(filepath.Join(dir, "autumn_lanczos3_0.5x.png"), autumn, resize.Lanczos3)
+	resize0_5x(filepath.Join(dir, "plush_lanczos3_0.5x.png"), plush, resize.Lanczos3)
+	resize0_5x(filepath.Join(dir, "autumn_lanczos4_0.5x.png"), autumn, resize.Lanczos4)
+	resize0_5x(filepath.Join(dir, "plush_lanczos4_0.5x.png"), plush, resize.Lanczos4)
 }
 
 func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NRGBAh)) error {
