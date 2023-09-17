@@ -106,7 +106,8 @@ func Encode(img *fp16.NRGBAh) *image.NRGBA64 {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			rgba := img.NRGBAhAt(x, y)
-			a := uint16(math.RoundToEven(rgba.A.Float64() * 0xffff))
+			fa := max(0, min(1, rgba.A.Float64())) // clamp
+			a := uint16(math.RoundToEven(fa * 0xffff))
 			ret.SetNRGBA64(x, y, color.NRGBA64{
 				R: linearToEncodedTable16[rgba.R],
 				G: linearToEncodedTable16[rgba.G],
