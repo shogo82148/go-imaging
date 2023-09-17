@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	"image/png"
@@ -28,41 +29,42 @@ var plush []byte
 
 func main() {
 	dir := os.Args[1]
-	resize2x(filepath.Join(dir, "autumn_bilinear_2x.png"), autumn, resize.BiLinear)
-	resize2x(filepath.Join(dir, "plush_bilinear_2x.png"), plush, resize.BiLinear)
-	resize2x(filepath.Join(dir, "autumn_nearest_neighbor_2x.png"), autumn, resize.NearestNeighbor)
-	resize2x(filepath.Join(dir, "plush_nearest_neighbor_2x.png"), plush, resize.NearestNeighbor)
-	resize2x(filepath.Join(dir, "autumn_hermite_2x.png"), autumn, resize.Hermite)
-	resize2x(filepath.Join(dir, "plush_hermite_2x.png"), plush, resize.Hermite)
-	resize2x(filepath.Join(dir, "autumn_general_2x.png"), autumn, resize.General)
-	resize2x(filepath.Join(dir, "plush_general_2x.png"), plush, resize.General)
-	resize2x(filepath.Join(dir, "autumn_catmull_rom_2x.png"), autumn, resize.CatmullRom)
-	resize2x(filepath.Join(dir, "plush_catmull_rom_2x.png"), plush, resize.CatmullRom)
-	resize2x(filepath.Join(dir, "autumn_mitchell_2x.png"), autumn, resize.Mitchell)
-	resize2x(filepath.Join(dir, "plush_mitchell_2x.png"), plush, resize.Mitchell)
-	resize2x(filepath.Join(dir, "autumn_lanczos2_2x.png"), autumn, resize.Lanczos2)
-	resize2x(filepath.Join(dir, "plush_lanczos2_2x.png"), plush, resize.Lanczos2)
-	resize2x(filepath.Join(dir, "autumn_lanczos3_2x.png"), autumn, resize.Lanczos3)
-	resize2x(filepath.Join(dir, "plush_lanczos3_2x.png"), plush, resize.Lanczos3)
-	resize2x(filepath.Join(dir, "autumn_lanczos4_2x.png"), autumn, resize.Lanczos4)
-	resize2x(filepath.Join(dir, "plush_lanczos4_2x.png"), plush, resize.Lanczos4)
+	grid := gridPattern()
+	os.WriteFile(filepath.Join(dir, "grid.png"), grid, 0644)
 
-	resize0_5x(filepath.Join(dir, "autumn_bilinear_0.5x.png"), autumn, resize.BiLinear)
-	resize0_5x(filepath.Join(dir, "plush_bilinear_0.5x.png"), plush, resize.BiLinear)
-	resize0_5x(filepath.Join(dir, "autumn_nearest_neighbor_0.5x.png"), autumn, resize.NearestNeighbor)
-	resize0_5x(filepath.Join(dir, "plush_nearest_neighbor_0.5x.png"), plush, resize.NearestNeighbor)
-	resize0_5x(filepath.Join(dir, "autumn_hermite_0.5x.png"), autumn, resize.Hermite)
-	resize0_5x(filepath.Join(dir, "plush_hermite_0.5x.png"), plush, resize.Hermite)
-	resize0_5x(filepath.Join(dir, "autumn_catmull_rom_0.5x.png"), autumn, resize.CatmullRom)
-	resize0_5x(filepath.Join(dir, "plush_catmull_rom_0.5x.png"), plush, resize.CatmullRom)
-	resize0_5x(filepath.Join(dir, "autumn_mitchell_0.5x.png"), autumn, resize.Mitchell)
-	resize0_5x(filepath.Join(dir, "plush_mitchell_0.5x.png"), plush, resize.Mitchell)
-	resize0_5x(filepath.Join(dir, "autumn_lanczos2_0.5x.png"), autumn, resize.Lanczos2)
-	resize0_5x(filepath.Join(dir, "plush_lanczos2_0.5x.png"), plush, resize.Lanczos2)
-	resize0_5x(filepath.Join(dir, "autumn_lanczos3_0.5x.png"), autumn, resize.Lanczos3)
-	resize0_5x(filepath.Join(dir, "plush_lanczos3_0.5x.png"), plush, resize.Lanczos3)
-	resize0_5x(filepath.Join(dir, "autumn_lanczos4_0.5x.png"), autumn, resize.Lanczos4)
-	resize0_5x(filepath.Join(dir, "plush_lanczos4_0.5x.png"), plush, resize.Lanczos4)
+	funcs := []struct {
+		name string
+		f    func(dst *fp16.NRGBAh, src *fp16.NRGBAh)
+	}{
+		{"bilinear", resize.BiLinear},
+		{"nearest_neighbor", resize.NearestNeighbor},
+		{"hermite", resize.Hermite},
+		{"general", resize.General},
+		{"catmull_rom", resize.CatmullRom},
+		{"mitchell", resize.Mitchell},
+		{"lanczos2", resize.Lanczos2},
+		{"lanczos3", resize.Lanczos3},
+		{"lanczos4", resize.Lanczos4},
+	}
+
+	images := []struct {
+		name string
+		img  []byte
+	}{
+		{"autumn", autumn},
+		{"plush", plush},
+		{"grid", grid},
+	}
+
+	for _, f := range funcs {
+		for _, img := range images {
+			var filename string
+			filename = filepath.Join(dir, fmt.Sprintf("%s_%s_2x.png", img.name, f.name))
+			resize2x(filename, img.img, f.f)
+			filename = filepath.Join(dir, fmt.Sprintf("%s_%s_0.5x.png", img.name, f.name))
+			resize0_5x(filename, img.img, f.f)
+		}
+	}
 }
 
 func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NRGBAh)) error {
@@ -97,4 +99,23 @@ func resize0_5x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.
 		return err
 	}
 	return os.WriteFile(filename, buf.Bytes(), 0644)
+}
+
+func gridPattern() []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 256, 256))
+	for y := 0; y < 256; y++ {
+		for x := 0; x < 256; x++ {
+			if (x+y)%2 == 0 {
+				img.Set(x, y, image.White)
+			} else {
+				img.Set(x, y, image.Black)
+			}
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	if err := png.Encode(buf, img); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
 }
