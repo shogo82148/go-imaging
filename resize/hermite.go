@@ -19,10 +19,8 @@ func Hermite(dst, src *fp16.NRGBAh) {
 	parallels.Parallel(0, dstDy, func(y int) {
 		for x := 0; x < dstDx; x++ {
 			var c fp16color.NRGBAh
-			srcX, remX := mulDiv(x, srcDx-1, dstDx-1)
-			srcY, remY := mulDiv(y, srcDy-1, dstDy-1)
-			dx0 := float64(remX) / float64(dstDx-1)
-			dy0 := float64(remY) / float64(dstDy-1)
+			srcX, dx0 := scale(x, srcDx, dstDx)
+			srcY, dy0 := scale(y, srcDy, dstDy)
 			c0 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY)
 			c1 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY)
 			c2 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY+1)

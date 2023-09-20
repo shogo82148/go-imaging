@@ -1,7 +1,7 @@
 package resize
 
 import (
-	"math/bits"
+	"math"
 
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/internal/parallels"
@@ -18,25 +18,15 @@ func NearestNeighbor(dst, src *fp16.NRGBAh) {
 
 	parallels.Parallel(0, dstDy, func(y int) {
 		for x := 0; x < dstDx; x++ {
+			srcX, dx := scale(x, srcDx, dstDx)
+			srcY, dy := scale(y, srcDy, dstDy)
+			srcX += int(math.Round(dx))
+			srcY += int(math.Round(dy))
 			dst.SetNRGBAh(
 				x+dstBounds.Min.X,
 				y+dstBounds.Min.Y,
-				src.NRGBAhAt(
-					mulDivRound(x, srcDx-1, dstDx-1),
-					mulDivRound(y, srcDy-1, dstDy-1),
-				),
+				nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY),
 			)
 		}
 	})
-}
-
-func mulDivRound(a, b, c int) int {
-	hi, lo := bits.Mul64(uint64(a), uint64(b))
-
-	// round to nearest
-	lo, carry := bits.Add64(lo, uint64(c)/2, 0)
-	hi += carry
-
-	quo, _ := bits.Div64(hi, lo, uint64(c))
-	return int(quo)
 }
