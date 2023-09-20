@@ -21,10 +21,10 @@ func Hermite(dst, src *fp16.NRGBAh) {
 			var c fp16color.NRGBAh
 			srcX, dx0 := scale(x, srcDx, dstDx)
 			srcY, dy0 := scale(y, srcDy, dstDy)
-			c0 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY)
-			c1 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY)
-			c2 := src.NRGBAhAt(srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY+1)
-			c3 := src.NRGBAhAt(srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY+1)
+			c0 := nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY)
+			c1 := nrgbhAt(src, srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY)
+			c2 := nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY+1)
+			c3 := nrgbhAt(src, srcBounds.Min.X+srcX+1, srcBounds.Min.Y+srcY+1)
 
 			// https://qiita.com/yoya/items/f167b2598fec98679422
 			// https://legacy.imagemagick.org/Usage/filter/#mitchell
