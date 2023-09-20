@@ -1,3 +1,7 @@
 .PHONY: examples
 examples:
 	go run ./internal/cmd/sample_gen examples
+
+.PHONY: golden
+golden:
+	go run ./resize/internal/cmd/golden ./resize/testdata
