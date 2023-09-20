@@ -1,15 +1,21 @@
 package resize
 
 import (
-	"image"
 	"testing"
 
-	"github.com/shogo82148/go-imaging/fp16"
+	"github.com/shogo82148/go-imaging/resize/internal/golden"
 )
 
+func TestNearestNeighbor(t *testing.T) {
+	src := golden.InputPattern()
+	dst := golden.NewDst()
+	NearestNeighbor(dst, src)
+	golden.Assert(t, "nearest_neighbor", dst)
+}
+
 func BenchmarkNearestNeighbor(b *testing.B) {
-	dst := fp16.NewNRGBAh(image.Rect(0, 0, 512, 512))
-	src := fp16.NewNRGBAh(image.Rect(0, 0, 256, 256))
+	src := golden.InputPattern()
+	dst := golden.NewDst()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		NearestNeighbor(dst, src)
