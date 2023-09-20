@@ -4,8 +4,6 @@ import (
 	"math"
 
 	"github.com/shogo82148/float16"
-	"github.com/shogo82148/go-imaging/fp16"
-	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
 
 // https://qiita.com/yoya/items/f167b2598fec98679422
@@ -39,13 +37,4 @@ func general(c0, c1, c2, c3 float16.Float16, d float64, coeff []float64) float16
 	a2 := cubicBC(1-d, coeff)
 	a3 := cubicBC(2-d, coeff)
 	return float16.FromFloat64(c0.Float64()*a0 + c1.Float64()*a1 + c2.Float64()*a2 + c3.Float64()*a3)
-}
-
-// nrgbhAt is similar to src.NRGBAhAt(x, y), but it returns the color at the
-// nearest point if the point is out of bounds.
-func nrgbhAt(img *fp16.NRGBAh, x, y int) fp16color.NRGBAh {
-	bounds := img.Bounds()
-	x = max(bounds.Min.X, min(bounds.Max.X-1, x))
-	y = max(bounds.Min.Y, min(bounds.Max.Y-1, y))
-	return img.NRGBAhAt(x, y)
 }
