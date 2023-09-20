@@ -39,3 +39,25 @@ func TestScale(t *testing.T) {
 		}
 	}
 }
+
+func scaleOld(x, srcDx, dstDx int) (srcX int, dx float64) {
+	fx := float64(x) + 0.5
+	fx = (fx * float64(srcDx)) / float64(dstDx)
+	fx -= 0.5
+	dx = fx - math.Floor(fx)
+	srcX = int(math.Floor(fx))
+	return
+}
+
+func BenchmarkScale(b *testing.B) {
+	b.Run("old", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			scaleOld(i%2000, 1000, 2000)
+		}
+	})
+	b.Run("new", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			scale(i%2000, 1000, 2000)
+		}
+	})
+}

@@ -1,19 +1,22 @@
 package resize
 
 import (
-	"math"
-
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
 
 // scale returns the source point and the distance from the source point.
 func scale(x, srcDx, dstDx int) (srcX int, dx float64) {
-	fx := float64(x) + 0.5
-	fx = (fx * float64(srcDx)) / float64(dstDx)
-	fx -= 0.5
-	dx = fx - math.Floor(fx)
-	srcX = int(math.Floor(fx))
+	quo, rem := mulDiv(2*x+1, srcDx, dstDx, 2*dstDx)
+	srcX = quo - 1
+	dx = float64(rem) / float64(2*dstDx)
+	return
+}
+
+func mulDiv(a, b, c, d int) (quo, rem int) {
+	e := uint64(a)*uint64(b) + uint64(c)
+	quo = int(e / uint64(d))
+	rem = int(e % uint64(d))
 	return
 }
 
