@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const ICCmagicNumber = 0x61637370 // 'acsp'
+const ICCMagicNumber = 0x61637370 // 'acsp'
 
 type dateTimeNumber struct {
 	Year   uint16
@@ -76,18 +76,17 @@ func (n U8Fixed8Number) Float64() float64 {
 	return float64(n) / 0x100
 }
 
-type xyzNumber struct {
+type XYZNumber struct {
 	X S15Fixed16Number
 	Y S15Fixed16Number
 	Z S15Fixed16Number
 }
 
+type CMMType uint32
+
 type Profile struct {
-	Version    Version
-	Class      Class
-	ColorSpace ColorSpace
-	Time       time.Time
-	Tags       []TagEntry
+	ProfileHeader
+	Tags []TagEntry
 }
 
 type Version uint32
@@ -108,145 +107,11 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d.0", v.Major(), v.Minor(), v.BugFix())
 }
 
-type Class uint32
-
-const (
-	ClassInput      Class = 0x73636e72 // 'scnr'
-	ClassDisplay    Class = 0x6d6e7472 // 'mntr'
-	ClassOutput     Class = 0x70727472 // 'prtr'
-	ClassLink       Class = 0x6c696e6b // 'link'
-	ClassAbstract   Class = 0x61627374 // 'abst'
-	ClassColorSpace Class = 0x73706163 // 'spac'
-	ClassNamedColor Class = 0x6e6d636c // 'nmcl'
-)
-
 func printable(b byte) byte {
 	if b < 0x20 || b > 0x7e {
 		return '.'
 	}
 	return b
-}
-
-func (class Class) String() string {
-	switch class {
-	case ClassInput:
-		return "Input device profile"
-	case ClassDisplay:
-		return "Display device profile"
-	case ClassOutput:
-		return "Output device profile"
-	case ClassLink:
-		return "DeviceLink profile"
-	case ClassAbstract:
-		return "Abstract profile"
-	case ClassColorSpace:
-		return "ColorSpace profile"
-	case ClassNamedColor:
-		return "NamedColor profile"
-	default:
-		return fmt.Sprintf(
-			"Unknown Class(%08xh '%c%c%c%c')",
-			uint32(class),
-			printable(byte(class>>24)),
-			printable(byte(class>>16)),
-			printable(byte(class>>8)),
-			printable(byte(class)),
-		)
-	}
-}
-
-type ColorSpace uint32
-
-const (
-	ColorSpaceXYZ   ColorSpace = 0x58595a20 // 'XYZ '
-	ColorSpaceLab   ColorSpace = 0x4c616220 // 'Lab '
-	ColorSpaceLuv   ColorSpace = 0x4c757620 // 'Luv '
-	ColorSpaceYCbCr ColorSpace = 0x59436272 // 'YCbr'
-	ColorSpaceYxy   ColorSpace = 0x59787920 // 'Yxy '
-	ColorSpaceRGB   ColorSpace = 0x52474220 // 'RGB '
-	ColorSpaceGray  ColorSpace = 0x47524159 // 'GRAY'
-	ColorSpaceHSV   ColorSpace = 0x48535620 // 'HSV '
-	ColorSpaceHLS   ColorSpace = 0x484c5320 // 'HLS '
-	ColorSpaceCMYK  ColorSpace = 0x434d594b // 'CMYK'
-	ColorSpaceCMY   ColorSpace = 0x434d5920 // 'CMY '
-	ColorSpace2CLR  ColorSpace = 0x32434c52 // '2CLR'
-	ColorSpace3CLR  ColorSpace = 0x33434c52 // '3CLR'
-	ColorSpace4CLR  ColorSpace = 0x34434c52 // '4CLR'
-	ColorSpace5CLR  ColorSpace = 0x35434c52 // '5CLR'
-	ColorSpace6CLR  ColorSpace = 0x36434c52 // '6CLR'
-	ColorSpace7CLR  ColorSpace = 0x37434c52 // '7CLR'
-	ColorSpace8CLR  ColorSpace = 0x38434c52 // '8CLR'
-	ColorSpace9CLR  ColorSpace = 0x39434c52 // '9CLR'
-	ColorSpace10CLR ColorSpace = 0x41434c52 // 'ACLR'
-	ColorSpace11CLR ColorSpace = 0x42434c52 // 'BCLR'
-	ColorSpace12CLR ColorSpace = 0x43434c52 // 'CCLR'
-	ColorSpace13CLR ColorSpace = 0x44434c52 // 'DCLR'
-	ColorSpace14CLR ColorSpace = 0x45434c52 // 'ECLR'
-	ColorSpace15CLR ColorSpace = 0x46434c52 // 'FCLR'
-)
-
-func (cs ColorSpace) String() string {
-	switch cs {
-	case ColorSpaceXYZ:
-		return "CIEXYZ"
-	case ColorSpaceLab:
-		return "CIELab"
-	case ColorSpaceLuv:
-		return "CIELuv"
-	case ColorSpaceYCbCr:
-		return "YCbCr"
-	case ColorSpaceYxy:
-		return "CIEYxy"
-	case ColorSpaceRGB:
-		return "RGB"
-	case ColorSpaceGray:
-		return "Gray"
-	case ColorSpaceHSV:
-		return "HSV"
-	case ColorSpaceHLS:
-		return "HLS"
-	case ColorSpaceCMYK:
-		return "CMYK"
-	case ColorSpaceCMY:
-		return "CMY"
-	case ColorSpace2CLR:
-		return "2 color"
-	case ColorSpace3CLR:
-		return "3 color"
-	case ColorSpace4CLR:
-		return "4 color"
-	case ColorSpace5CLR:
-		return "5 color"
-	case ColorSpace6CLR:
-		return "6 color"
-	case ColorSpace7CLR:
-		return "7 color"
-	case ColorSpace8CLR:
-		return "8 color"
-	case ColorSpace9CLR:
-		return "9 color"
-	case ColorSpace10CLR:
-		return "10 color"
-	case ColorSpace11CLR:
-		return "11 color"
-	case ColorSpace12CLR:
-		return "12 color"
-	case ColorSpace13CLR:
-		return "13 color"
-	case ColorSpace14CLR:
-		return "14 color"
-	case ColorSpace15CLR:
-		return "15 color"
-	default:
-		return fmt.Sprintf(
-			"Unknown(%08xh '%c%c%c%c')",
-			uint32(cs),
-			printable(byte(cs>>24)),
-			printable(byte(cs>>16)),
-			printable(byte(cs>>8)),
-			printable(byte(cs)),
-		)
-	}
 }
 
 type TagEntry struct {
@@ -256,11 +121,11 @@ type TagEntry struct {
 
 func Decode(data []byte) (*Profile, error) {
 	r := bytes.NewReader(data)
-	var header profileHeader
+	var header ProfileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
 		return nil, err
 	}
-	if header.Magic != ICCmagicNumber {
+	if header.Magic != ICCMagicNumber {
 		return nil, errors.New("icc: invalid magic number")
 	}
 
@@ -292,7 +157,9 @@ func Decode(data []byte) (*Profile, error) {
 			}
 			content = &tag
 		default:
-			content = &TagContentRaw{Data: tagData}
+			content = &TagContentRaw{
+				Data: slices.Clone(tagData),
+			}
 		}
 		tags[i] = TagEntry{
 			Tag:        t.Signature,
@@ -301,11 +168,59 @@ func Decode(data []byte) (*Profile, error) {
 	}
 
 	return &Profile{
-		Class:      header.Class,
-		ColorSpace: header.ColorSpace,
-		Time:       header.DateTime.Time(),
-		Tags:       tags,
+		ProfileHeader: header,
+		Tags:          tags,
 	}, nil
+}
+
+func Encode(profile *Profile) ([]byte, error) {
+	// calculate the size of the profile header
+	offset := uint32(128)                    // for the profile header
+	offset += 4                              // for the tag count
+	offset += uint32(len(profile.Tags) * 12) // for the tag table
+
+	tagTable := make([]tagTable, len(profile.Tags))
+	tagContents := make([][]byte, len(profile.Tags))
+	for i, tag := range profile.Tags {
+		// encode the tag content
+		data, err := tag.TagContent.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		tagContents[i] = data
+
+		// set the tag table
+		tagTable[i].Signature = tag.Tag
+		tagTable[i].Offset = offset
+		tagTable[i].Size = uint32(len(data))
+
+		offset += uint32(len(data))
+		offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
+	}
+
+	header := profile.ProfileHeader
+	header.Size = offset
+	header.Magic = ICCMagicNumber
+
+	buf := bytes.NewBuffer(make([]byte, 0, offset))
+	if err := binary.Write(buf, binary.BigEndian, header); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, uint32(len(profile.Tags))); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, tagTable); err != nil {
+		return nil, err
+	}
+	for _, data := range tagContents {
+		buf.Write(data)
+
+		// align to 4 bytes
+		for buf.Len()%4 != 0 {
+			buf.WriteByte(0)
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 func (p *Profile) Get(tag Tag) TagContent {
@@ -317,23 +232,23 @@ func (p *Profile) Get(tag Tag) TagContent {
 	return nil
 }
 
-// profileHeader is the header of ICC profile.
-type profileHeader struct {
+// ProfileHeader is the header of ICC profile.
+type ProfileHeader struct {
 	Size               uint32
-	CMMType            uint32
+	CMMType            CMMType
 	Version            Version
 	Class              Class
 	ColorSpace         ColorSpace
 	PCS                uint32
 	DateTime           dateTimeNumber
 	Magic              uint32
-	Platform           uint32
+	Platform           Platform
 	Flags              uint32
 	Manufacturer       uint32
 	DeviceModel        uint32
 	DeviceAttributes   uint64
 	RenderingIntent    uint32
-	XYZ                xyzNumber
+	XYZ                XYZNumber
 	ProfileCreator     uint32
 	ProfileID          [2]uint64
 	SpectralPCS        uint32
@@ -477,6 +392,23 @@ type TagContentParametricCurve struct {
 	Params       [8]S15Fixed16Number // this is not a slice because to avoid extra boundary check.
 }
 
+func (t *TagContentParametricCurve) params() ([]S15Fixed16Number, error) {
+	switch t.FunctionType {
+	case 0x0000:
+		return t.Params[:1], nil
+	case 0x0001:
+		return t.Params[:3], nil
+	case 0x0002:
+		return t.Params[:4], nil
+	case 0x0003:
+		return t.Params[:5], nil
+	case 0x0004:
+		return t.Params[:7], nil
+	default:
+		return nil, errors.New("icc: unknown parametric curve function type")
+	}
+}
+
 type tagContentParametricCurve struct {
 	TagType      TagType
 	_            uint32
@@ -487,27 +419,39 @@ type tagContentParametricCurve struct {
 func (t *TagContentParametricCurve) TagType() TagType { return TagTypeParametricCurve }
 
 func (t *TagContentParametricCurve) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("not implemented")
+	// write the header
+	w := new(bytes.Buffer)
+	curve := tagContentParametricCurve{
+		TagType:      TagTypeParametricCurve,
+		FunctionType: t.FunctionType,
+	}
+	if err := binary.Write(w, binary.BigEndian, curve); err != nil {
+		return nil, err
+	}
+
+	// write the parameters
+	params, err := t.params()
+	if err != nil {
+		return nil, err
+	}
+	if err := binary.Write(w, binary.BigEndian, params); err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
 }
 
 func (t *TagContentParametricCurve) UnmarshalBinary(data []byte) error {
+	// read the header
 	r := bytes.NewReader(data)
 	var curve tagContentParametricCurve
 	if err := binary.Read(r, binary.BigEndian, &curve); err != nil {
 		return err
 	}
-	var params []S15Fixed16Number
-	switch curve.FunctionType {
-	case 0x0000:
-		params = t.Params[:1]
-	case 0x0001:
-		params = t.Params[:3]
-	case 0x0002:
-		params = t.Params[:4]
-	case 0x0003:
-		params = t.Params[:5]
-	case 0x0004:
-		params = t.Params[:7]
+
+	// read the parameters
+	params, err := t.params()
+	if err != nil {
+		return err
 	}
 	if err := binary.Read(r, binary.BigEndian, params); err != nil {
 		return err
