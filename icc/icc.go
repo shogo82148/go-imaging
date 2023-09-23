@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"time"
 )
 
@@ -43,11 +44,24 @@ type positionNumber struct {
 type response16Number struct {
 	Device   uint16
 	Reserved uint16
-	Attr     s15Fixed16Number
+	Attr     S15Fixed16Number
 }
 
-// s15Fixed16Number is a 16-bit signed integer with a 16-bit fraction.
-type s15Fixed16Number int32
+// S15Fixed16Number is a 16-bit signed integer with a 16-bit fraction.
+type S15Fixed16Number int32
+
+func (n S15Fixed16Number) Float64() float64 {
+	return float64(n) / 0x10000
+}
+
+func S15Fixed16NumberFromFloat64(f float64) S15Fixed16Number {
+	return S15Fixed16Number(math.RoundToEven(f * 0x10000))
+}
+
+func (n S15Fixed16Number) String() string {
+	f := n.Float64()
+	return strconv.FormatFloat(f, 'f', -1, 64)
+}
 
 // u16Fix16Number is a 16-bit unsigned integer with a 16-bit fraction.
 type u16Fix16Number uint32
@@ -63,9 +77,9 @@ func (n U8Fixed8Number) Float64() float64 {
 }
 
 type xyzNumber struct {
-	X s15Fixed16Number
-	Y s15Fixed16Number
-	Z s15Fixed16Number
+	X S15Fixed16Number
+	Y S15Fixed16Number
+	Z S15Fixed16Number
 }
 
 type Profile struct {
@@ -131,7 +145,7 @@ func (class Class) String() string {
 		return "NamedColor profile"
 	default:
 		return fmt.Sprintf(
-			"Unknown(%08xh '%c%c%c%c')",
+			"Unknown Class(%08xh '%c%c%c%c')",
 			uint32(class),
 			printable(byte(class>>24)),
 			printable(byte(class>>16)),
@@ -271,6 +285,12 @@ func Decode(data []byte) (*Profile, error) {
 				return nil, err
 			}
 			content = &tag
+		case TagTypeParametricCurve:
+			var tag TagContentParametricCurve
+			if err := tag.UnmarshalBinary(tagData); err != nil {
+				return nil, err
+			}
+			content = &tag
 		default:
 			content = &TagContentRaw{Data: tagData}
 		}
@@ -324,246 +344,11 @@ type profileHeader struct {
 	Reserved           uint32
 }
 
-type Tag uint32
-
-// ICC.2 tags
-// https://www.color.org/specification/ICC.2-2019.pdf
-const (
-	TagAToB0                          Tag = 0x41324230 // 'A2B0'
-	TagAToB1                          Tag = 0x41324231 // 'A2B1'
-	TagAToB2                          Tag = 0x41324232 // 'A2B2'
-	TagAToB3                          Tag = 0x41324233 // 'A2B3'
-	TagAToM0                          Tag = 0x41324d30 // 'A2M0'
-	TagBRDFColormetricParameter0      Tag = 0x62637030 // 'bcp0'
-	TagBRDFColormetricParameter1      Tag = 0x62637031 // 'bcp1'
-	TagBRDFColormetricParameter2      Tag = 0x62637032 // 'bcp2'
-	TagBRDFColormetricParameter3      Tag = 0x62637033 // 'bcp3'
-	TagBRDFSpectralParameter0         Tag = 0x62737030 // 'bsp0'
-	TagBRDFSpectralParameter1         Tag = 0x62737031 // 'bsp1'
-	TagBRDFSpectralParameter2         Tag = 0x62737032 // 'bsp2'
-	TagBRDFSpectralParameter3         Tag = 0x62737033 // 'bsp3'
-	TagBRDFAToB0                      Tag = 0x62414230 // 'bAB0'
-	TagBRDFAToB1                      Tag = 0x62414231 // 'bAB1'
-	TagBRDFAToB2                      Tag = 0x62414232 // 'bAB2'
-	TagBRDFAToB3                      Tag = 0x62414233 // 'bAB3'
-	TagBRDFBToA0                      Tag = 0x62424130 // 'bBA0'
-	TagBRDFBToA1                      Tag = 0x62424131 // 'bBA1'
-	TagBRDFBToA2                      Tag = 0x62424132 // 'bBA2'
-	TagBRDFBToA3                      Tag = 0x62424133 // 'bBA3'
-	TagBRDFBToD0                      Tag = 0x62424430 // 'bBD0'
-	TagBRDFBToD1                      Tag = 0x62424431 // 'bBD1'
-	TagBRDFBToD2                      Tag = 0x62424432 // 'bBD2'
-	TagBRDFBToD3                      Tag = 0x62424433 // 'bBD3'
-	TagBRDFDToB0                      Tag = 0x62444230 // 'bDB0'
-	TagBRDFDToB1                      Tag = 0x62444231 // 'bDB1'
-	TagBRDFDToB2                      Tag = 0x62444232 // 'bDB2'
-	TagBRDFDToB3                      Tag = 0x62444233 // 'bDB3'
-	TagBRDFMToB0                      Tag = 0x624d4230 // 'bMB0'
-	TagBRDFMToB1                      Tag = 0x624d4231 // 'bMB1'
-	TagBRDFMToB2                      Tag = 0x624d4232 // 'bMB2'
-	TagBRDFMToB3                      Tag = 0x624d4233 // 'bMB3'
-	TagBRDFMToS0                      Tag = 0x624d5330 // 'bMS0'
-	TagBRDFMToS1                      Tag = 0x624d5331 // 'bMS1'
-	TagBRDFMToS2                      Tag = 0x624d5332 // 'bMS2'
-	TagBRDFMToS3                      Tag = 0x624d5333 // 'bMS3'
-	TagBToA0                          Tag = 0x42324130 // 'B2A0'
-	TagBToA1                          Tag = 0x42324131 // 'B2A1'
-	TagBToA2                          Tag = 0x42324132 // 'B2A2'
-	TagBToA3                          Tag = 0x42324133 // 'B2A3'
-	TagBToD0                          Tag = 0x42324430 // 'B2D0'
-	TagBToD1                          Tag = 0x42324431 // 'B2D1'
-	TagBToD2                          Tag = 0x42324432 // 'B2D2'
-	TagBToD3                          Tag = 0x42324433 // 'B2D3'
-	TagCalibrationDateTime            Tag = 0x63616c74 // 'calt'
-	TagCharTarget                     Tag = 0x74617267 // 'targ'
-	TagColorEncodingParams            Tag = 0x63657074 // 'cept'
-	TagColorSpaceName                 Tag = 0x63736e6d // 'csnm'
-	TagColorantOrder                  Tag = 0x636c726f // 'clro'
-	TagColorantOrderOut               Tag = 0x636c6f6f // 'cloo'
-	TagColorantInfo                   Tag = 0x636c696e // 'clin'
-	TagColorantInfoOut                Tag = 0x636c696f // 'clio'
-	TagColorimetricIntentImageState   Tag = 0x63696973 // 'ciis'
-	TagCopyright                      Tag = 0x63707274 // 'cprt'
-	TagCustomToStandardPcc            Tag = 0x63327370 // 'c2sp'
-	TagCXF                            Tag = 0x43784620 // 'CxF '
-	TagDeviceMfgDesc                  Tag = 0x646d6e64 // 'dmnd'
-	TagDeviceModelDesc                Tag = 0x646d6464 // 'dmdd'
-	TagDirectionalAToB0               Tag = 0x64414230 // 'dAB0'
-	TagDirectionalAToB1               Tag = 0x64414231 // 'dAB1'
-	TagDirectionalAToB2               Tag = 0x64414232 // 'dAB2'
-	TagDirectionalAToB3               Tag = 0x64414233 // 'dAB3'
-	TagDirectionalBToA0               Tag = 0x64424130 // 'dBA0'
-	TagDirectionalBToA1               Tag = 0x64424131 // 'dBA1'
-	TagDirectionalBToA2               Tag = 0x64424132 // 'dBA2'
-	TagDirectionalBToA3               Tag = 0x64424133 // 'dBA3'
-	TagDirectionalBToD0               Tag = 0x64424430 // 'dBD0'
-	TagDirectionalBToD1               Tag = 0x64424431 // 'dBD1'
-	TagDirectionalBToD2               Tag = 0x64424432 // 'dBD2'
-	TagDirectionalBToD3               Tag = 0x64424433 // 'dBD3'
-	TagDirectionalDToB0               Tag = 0x64444230 // 'dDB0'
-	TagDirectionalDToB1               Tag = 0x64444231 // 'dDB1'
-	TagDirectionalDToB2               Tag = 0x64444232 // 'dDB2'
-	TagDirectionalDToB3               Tag = 0x64444233 // 'dDB3'
-	TagDToB0                          Tag = 0x44324230 // 'D2B0'
-	TagDToB1                          Tag = 0x44324231 // 'D2B1'
-	TagDToB2                          Tag = 0x44324232 // 'D2B2'
-	TagDToB3                          Tag = 0x44324233 // 'D2B3'
-	TagGamutBoundaryDescription0      Tag = 0x67626430 // 'gbd0'
-	TagGamutBoundaryDescription1      Tag = 0x67626431 // 'gbd1'
-	TagGamutBoundaryDescription2      Tag = 0x67626432 // 'gbd2'
-	TagGamutBoundaryDescription3      Tag = 0x67626433 // 'gbd3'
-	TagMultiplexDefaultValues         Tag = 0x6d647620 // 'mdv '
-	TagMultiplexTypeArray             Tag = 0x6d637461 // 'mcta'
-	TagMeasurementInfo                Tag = 0x6d696e66 // 'minf'
-	TagMeasurementInputInfo           Tag = 0x6d69696e // 'miin'
-	TagMediaWhitePoint                Tag = 0x77747074 // 'wtpt'
-	TagMetadata                       Tag = 0x6d657461 // 'meta'
-	TagMToA0                          Tag = 0x4d546130 // 'M2A0'
-	TagMToB0                          Tag = 0x4d546230 // 'M2B0'
-	TagMToB1                          Tag = 0x4d324231 // 'M2B1'
-	TagMToB2                          Tag = 0x4d324232 // 'M2B2'
-	TagMToB3                          Tag = 0x4d324233 // 'M2B3'
-	TagMToS0                          Tag = 0x4d546130 // 'M2S0'
-	TagMToS1                          Tag = 0x4d546131 // 'M2S1'
-	TagMToS2                          Tag = 0x4d546132 // 'M2S2'
-	TagMToS3                          Tag = 0x4d546133 // 'M2S3'
-	TagNamedColor                     Tag = 0x6e6d636c // 'nmcl'
-	TagPerceptualRenderingIntentGamut Tag = 0x72696730 // 'rig0'
-	TagProfileDescription             Tag = 0x64657363 // 'desc'
-	TagProfileSequenceInformation     Tag = 0x7073696e // 'psin'
-	TagReferenceName                  Tag = 0x72666e6d // 'rfnm'
-	TagSaturationRenderingIntentGamut Tag = 0x72696732 // 'rig2'
-	TagSpectralViewingConditions      Tag = 0x7376636e // 'svcn'
-	TagSpectralWhitePoint             Tag = 0x73777074 // 'swpt'
-	TagStandardToCustomPcc            Tag = 0x73326370 // 's2cp'
-	TagSurfaceMap                     Tag = 0x736d6170 // 'smap'
-	TagTechnology                     Tag = 0x74656368 // 'tech'
-)
-
-// ICC.2 colorEncodingParamsStructure element sub-tags
-const (
-	TagCeptBluePrimaryXYZMbr                Tag = 0x6258595a // 'bXYZ'
-	TagCeptGreenPrimaryXYZMbr               Tag = 0x6758595a // 'gXYZ'
-	TagCeptRedPrimaryXYZMbr                 Tag = 0x7258595a // 'rXYZ'
-	TagCeptTransferFunctionMbr              Tag = 0x66756e63 // 'func'
-	TagCeptLumaChromaMatrixMbr              Tag = 0x6c6d6174 // 'lmat'
-	TagCeptWhitePointLuminanceMbr           Tag = 0x776c756d // 'wlum'
-	TagCeptWhitePointChromaticityMbr        Tag = 0x7758595a // 'wXYZ'
-	TagCeptEncodingRangeMbr                 Tag = 0x65526e67 // 'eRng'
-	TagCeptBitDepthMbr                      Tag = 0x62697473 // 'bits'
-	TagCeptImageStateMbr                    Tag = 0x696d7374 // 'imst'
-	TagCeptImageBackgroundMbr               Tag = 0x69626b67 // 'ibkg'
-	TagCeptViewingSurroundMbr               Tag = 0x73726e64 // 'srnd'
-	TagCeptAmbientIlluminanceMbr            Tag = 0x61696c6d // 'ailm'
-	TagCeptAmbientWhitePointLuminanceMbr    Tag = 0x61776c6d // 'awlm'
-	TagCeptAmbientWhitePointChromaticityMbr Tag = 0x61777063 // 'awpc'
-	TagCeptViewingFlareMbr                  Tag = 0x666c6172 // 'flar'
-	TagCeptValidRelativeLuminanceRangeMbr   Tag = 0x6c726e67 // 'lrng'
-	TagCeptMediumWhitePointLuminanceMbr     Tag = 0x6d77706c // 'mwpl'
-	TagCeptMediumWhitePointChromaticityMbr  Tag = 0x6d777063 // 'mwpc'
-	TagCeptMediumBlackPointLuminanceMbr     Tag = 0x6d62706c // 'mbpl'
-	TagCeptMediumBlackPointChromaticityMbr  Tag = 0x6d627063 // 'mbpc'
-)
-
-// ICC.1 tags
-// https://www.color.org/specification/ICC.1-2022-05.pdf
-const (
-	// TagAToB0               Tag = 0x41324230 // 'A2B0'
-	// TagAToB1               Tag = 0x41324231 // 'A2B1'
-	// TagAToB2               Tag = 0x41324232 // 'A2B2'
-	TagBlueMatrixColumn Tag = 0x6258595a // 'bXYZ'
-	TagBlueTRC          Tag = 0x62545243 // 'bTRC'
-	// TagBToA0            Tag = 0x42324130 // 'B2A0'
-	// TagBToA1               Tag = 0x42324131 // 'B2A1'
-	// TagBToA2               Tag = 0x42324132 // 'B2A2'
-	// TagBToD0               Tag = 0x42324430 // 'B2D0'
-	// TagBToD1               Tag = 0x42324431 // 'B2D1'
-	// TagBToD2               Tag = 0x42324432 // 'B2D2'
-	// TagBToD3               Tag = 0x42324433 // 'B2D3'
-	// TagCalibrationDateTime Tag = 0x63616c74 // 'calt'
-	// TagCharTarget          Tag = 0x74617267 // 'targ'
-	TagChromaticAdaptation Tag = 0x63686164 // 'chad'
-	TagCICP                Tag = 0x63696370 // 'cicp'
-	// TagColorantOrder                  Tag = 0x636c726f // 'clro'
-	TagColorantTable    Tag = 0x636c7274 // 'clrt'
-	TagColorantTableOut Tag = 0x636c6f74 // 'clot'
-	// TagColorimetricIntentImageState   Tag = 0x63696973 // 'ciis'
-	// TagCopyright                      Tag = 0x63707274 // 'cprt'
-	// TagDeviceMfgDesc                  Tag = 0x646d6e64 // 'dmnd'
-	// TagDeviceModelDesc                Tag = 0x646d6464 // 'dmdd'
-	// TagDToB0                          Tag = 0x44324230 // 'D2B0'
-	// TagDToB1                          Tag = 0x44324231 // 'D2B1'
-	// TagDToB2                          Tag = 0x44324232 // 'D2B2'
-	// TagDToB3                          Tag = 0x44324233 // 'D2B3'
-	TagGamut             Tag = 0x67616d74 // 'gamt'
-	TagGrayTRC           Tag = 0x6b545243 // 'kTRC'
-	TagGreenMatrixColumn Tag = 0x6758595a // 'gXYZ'
-	TagGreenTRC          Tag = 0x67545243 // 'gTRC'
-	TagLuminance         Tag = 0x6c756d69 // 'lumi'
-	TagMeasurement       Tag = 0x6d656173 // 'meas'
-	// TagMetadata                       Tag = 0x6d657461 // 'meta'
-	// TagMediaWhitePoint                Tag = 0x77747074 // 'wtpt'
-	TagNamedColor2    Tag = 0x6e636c32 // 'ncl2'
-	TagOutputResponse Tag = 0x72657370 // 'resp'
-	// TagPerceptualRenderingIntentGamut Tag = 0x72696730 // 'rig0'
-	TagPreview0 Tag = 0x70726530 // 'pre0'
-	TagPreview1 Tag = 0x70726531 // 'pre1'
-	TagPreview2 Tag = 0x70726532 // 'pre2'
-	// TagProfileDescription             Tag = 0x64657363 // 'desc'
-	TagProfileSequenceDesc       Tag = 0x70736571 // 'pseq'
-	TagProfileSequenceIdentifier Tag = 0x70736964 // 'psid'
-	TagRedMatrixColumn           Tag = 0x7258595a // 'rXYZ'
-	TagRedTRC                    Tag = 0x72545243 // 'rTRC'
-	// TagSaturationRenderingIntentGamut Tag = 0x72696732 // 'rig2'
-	// TagTechnology                     Tag = 0x74656368 // 'tech'
-	TagViewingCondDesc   Tag = 0x76756564 // 'vued'
-	TagViewingConditions Tag = 0x76696577 // 'view'
-)
-
 type tagTable struct {
 	Signature Tag
 	Offset    uint32
 	Size      uint32
 }
-
-type TagType uint32
-
-const (
-	TagTypeRaw TagType = 0xffffffff
-
-	TagTypeColorantOrder             TagType = 0x636c726f // 'clro'
-	TagTypeCurve                     TagType = 0x63757276 // 'curv'
-	TagTypeDataType                  TagType = 0x64617461 // 'data'
-	TagTypeDateTime                  TagType = 0x6474696d // 'dtim'
-	TagTypeDict                      TagType = 0x64637420 // 'dict'
-	TagTypeEmbeddedHeightImage       TagType = 0x6568696d // 'ehim'
-	TagTypeEmbeddedNormalImage       TagType = 0x656e696d // 'enim'
-	TagTypeFloat16Array              TagType = 0x666c3136 // 'fl16'
-	TagTypeFloat32Array              TagType = 0x666c3234 // 'fl32'
-	TagTypeFloat64Array              TagType = 0x666c3634 // 'fl64'
-	TagTypeLutAtoB                   TagType = 0x6d414220 // 'mAB '
-	TagTypeLutBtoA                   TagType = 0x6d424120 // 'mBA '
-	TagTypeMeasurement               TagType = 0x6d656173 // 'meas'
-	TagTypeMultiLocalizedUnicode     TagType = 0x6d6c7563 // 'mluc'
-	TagTypeMultiProcessElements      TagType = 0x6d706574 // 'mpet'
-	TagTypeParametricCurve           TagType = 0x70617261 // 'para'
-	TagTypeS15Fixed16Array           TagType = 0x73663332 // 'sf32'
-	TagTypeSignature                 TagType = 0x73696720 // 'sig '
-	TagTypeSparseMatrixArray         TagType = 0x736d6174 // 'smat'
-	TagTypeSpectralViewingConditions TagType = 0x7376636e // 'svcn'
-	TagTypeTagArrayType              TagType = 0x74617279 // 'tary'
-	TagTypeTagStruct                 TagType = 0x74737472 // 'tstr'
-	TagTypeU16Fixed16Array           TagType = 0x75663332 // 'uf32'
-	TagTypeUint16Array               TagType = 0x75693136 // 'ui16'
-	TagTypeUint32Array               TagType = 0x75693332 // 'ui32'
-	TagTypeUint64Array               TagType = 0x75693634 // 'ui64'
-	TagTypeUint8Array                TagType = 0x75693038 // 'ui08'
-	TagTypeUTF16                     TagType = 0x75743136 // 'ut16'
-	TagTypeUTF8                      TagType = 0x75746638 // 'utf8'
-	TagTypeUTF8Zip                   TagType = 0x7a757438 // 'zut8'
-	TagTypeXYZ                       TagType = 0x58595a20 // 'XYZ '
-	TagTypeZipXML                    TagType = 0x7a786d6c // 'zxml'
-)
 
 type TagContent interface {
 	encoding.BinaryMarshaler
@@ -584,7 +369,9 @@ type TagContentRaw struct {
 	Data []byte
 }
 
-func (t *TagContentRaw) TagType() TagType { return TagTypeRaw }
+func (t *TagContentRaw) TagType() TagType {
+	return TagType(binary.BigEndian.Uint32(t.Data))
+}
 
 func (t *TagContentRaw) MarshalBinary() ([]byte, error) {
 	return t.Data, nil
@@ -598,8 +385,7 @@ func (t *TagContentRaw) UnmarshalBinary(data []byte) error {
 var _ TagContent = (*TagContentCurve)(nil)
 
 type TagContentCurve struct {
-	Count uint32
-	Data  []uint16
+	Data []uint16
 }
 
 type tagContentCurve struct {
@@ -614,7 +400,7 @@ func (t *TagContentCurve) MarshalBinary() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 12+len(t.Data)*2))
 	curve := tagContentCurve{
 		TagType: t.TagType(),
-		Count:   t.Count,
+		Count:   uint32(len(t.Data)),
 	}
 	if err := binary.Write(buf, binary.BigEndian, curve); err != nil {
 		return nil, err
@@ -631,8 +417,7 @@ func (t *TagContentCurve) UnmarshalBinary(data []byte) error {
 	if err := binary.Read(r, binary.BigEndian, &curve); err != nil {
 		return err
 	}
-	t.Count = curve.Count
-	t.Data = make([]uint16, t.Count)
+	t.Data = make([]uint16, curve.Count)
 	if err := binary.Read(r, binary.BigEndian, &t.Data); err != nil {
 		return err
 	}
@@ -640,6 +425,7 @@ func (t *TagContentCurve) UnmarshalBinary(data []byte) error {
 }
 
 func (t *TagContentCurve) EncodeTone(x float64) float64 {
+	x = max(0, min(1, x)) // clip to [0.0, 1.0]
 	if len(t.Data) == 0 {
 		return x
 	}
@@ -662,6 +448,7 @@ func (t *TagContentCurve) EncodeTone(x float64) float64 {
 }
 
 func (t *TagContentCurve) DecodeTone(y float64) float64 {
+	y = max(0, min(1, y)) // clip to [0.0, 1.0]
 	if len(t.Data) == 0 {
 		return y
 	}
@@ -683,4 +470,191 @@ func (t *TagContentCurve) DecodeTone(y float64) float64 {
 	}
 	f := (y - y0) / (y1 - y0)
 	return x0 + f/float64(len(t.Data)-1)
+}
+
+type TagContentParametricCurve struct {
+	FunctionType uint16
+	Params       [8]S15Fixed16Number // this is not a slice because to avoid extra boundary check.
+}
+
+type tagContentParametricCurve struct {
+	TagType      TagType
+	_            uint32
+	FunctionType uint16
+	_            uint16
+}
+
+func (t *TagContentParametricCurve) TagType() TagType { return TagTypeParametricCurve }
+
+func (t *TagContentParametricCurve) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (t *TagContentParametricCurve) UnmarshalBinary(data []byte) error {
+	r := bytes.NewReader(data)
+	var curve tagContentParametricCurve
+	if err := binary.Read(r, binary.BigEndian, &curve); err != nil {
+		return err
+	}
+	var params []S15Fixed16Number
+	switch curve.FunctionType {
+	case 0x0000:
+		params = t.Params[:1]
+	case 0x0001:
+		params = t.Params[:3]
+	case 0x0002:
+		params = t.Params[:4]
+	case 0x0003:
+		params = t.Params[:5]
+	case 0x0004:
+		params = t.Params[:7]
+	}
+	if err := binary.Read(r, binary.BigEndian, params); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *TagContentParametricCurve) EncodeTone(x float64) float64 {
+	x = max(0, min(1, x)) // clip to [0.0, 1.0]
+	switch t.FunctionType {
+	// Y = X^g
+	case 0x0000:
+		g := t.Params[0].Float64()
+		return math.Pow(x, g)
+
+	// CIE122-1966
+	// Y = (aX + b)^g   if X >= -b/a
+	// Y = 0            if X <  -b/a
+	case 0x0001:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+
+		y := a*x + b
+		if y < 0 {
+			return 0
+		}
+		y = math.Pow(y, g)
+		return y
+
+	// IEC 61966‐3
+	// Y = (aX + b)^g + c  if X >= -b/a
+	// Y = c               if X <  -b/a
+	case 0x0002:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+
+		y := a*x + b
+		if y < 0 {
+			return c
+		}
+		y = math.Pow(y, g) + c
+		return max(0, min(1, y)) // clip to [0.0, 1.0]
+
+	// Y = (aX + b)^g     if X >= d
+	// Y = cX             if X <  d
+	case 0x0003:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+		d := t.Params[4].Float64()
+
+		if x < d {
+			return c * x
+		}
+		y := math.Pow(a*x+b, g)
+		return y
+
+	// Y = (aX + b)^g + e  if X >= d
+	// Y = cX + f          if X <  d
+	case 0x0004:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+		d := t.Params[4].Float64()
+		e := t.Params[5].Float64()
+		f := t.Params[6].Float64()
+
+		if x < d {
+			return c*x + f
+		}
+		y := math.Pow(a*x+b, g) + e
+		return max(0, min(1, y)) // clip to [0.0, 1.0]
+	}
+	return x
+}
+
+func (t *TagContentParametricCurve) DecodeTone(y float64) float64 {
+	y = max(0, min(1, y)) // clip to [0.0, 1.0]
+	switch t.FunctionType {
+	// Y = X^g
+	case 0x0000:
+		g := t.Params[0].Float64()
+		return math.Pow(y, 1/g)
+
+	// Y = (aX + b)^g   if X >= -b/a
+	// Y = 0            if X <  -b/a
+	case 0x0001:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+
+		x := (math.Pow(y, 1/g) - b) / a
+		return x
+
+	// Y = (aX + b)^g + c  if X >= -b/a
+	// Y = c               if X <  -b/a
+	case 0x0002:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+
+		if y < c {
+			return -b / a
+		}
+		y = max(0, y-c)
+		x := (math.Pow(y, 1/g) - b) / a
+		return max(0, min(1, x)) // clip to [0.0, 1.0]
+
+	// Y = (aX + b)^g     if X >= d
+	// Y = cX             if X <  d
+	case 0x0003:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+		d := t.Params[4].Float64()
+
+		x := (math.Pow(y, 1/g) - b) / a
+		if x < d {
+			return y / c
+		}
+		return max(0, min(1, x)) // clip to [0.0, 1.0]
+
+	// Y = (aX + b)^g + e  if X >= d
+	// Y = cX + f          if X <  d
+	case 0x0004:
+		g := t.Params[0].Float64()
+		a := t.Params[1].Float64()
+		b := t.Params[2].Float64()
+		c := t.Params[3].Float64()
+		d := t.Params[4].Float64()
+		e := t.Params[5].Float64()
+		f := t.Params[6].Float64()
+
+		x := (y - f) / c
+		if x < d {
+			return max(0, min(1, x)) // clip to [0.0, 1.0]
+		}
+		y = max(0, y-e)
+		x = (math.Pow(y, 1/g) - b) / a
+		return max(0, min(1, x)) // clip to [0.0, 1.0]
+	}
+	return y
 }
