@@ -1,10 +1,21 @@
 package png
 
 import (
+	"bytes"
+	"image"
 	"math"
 	"os"
 	"testing"
 )
+
+func encodeDecodeWithMeta(m *ImageWithMeta) (*ImageWithMeta, error) {
+	var b bytes.Buffer
+	err := EncodeWithMeta(&b, m)
+	if err != nil {
+		return nil, err
+	}
+	return DecodeWithMeta(&b)
+}
 
 func TestDecodeWithMeta_Gamma(t *testing.T) {
 	// gamma.png has the gAMA chunk but no iCCP chunk.
@@ -29,5 +40,21 @@ func TestDecodeWithMeta_Gamma(t *testing.T) {
 
 	if math.Abs(img.Gamma-0.45455) > 1e-5 {
 		t.Errorf("unexpected gamma: %f, want 0.45455", img.Gamma)
+	}
+}
+
+func TestEncodeWithMeta_Gamma(t *testing.T) {
+	m := &ImageWithMeta{
+		Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
+		Gamma: 0.45455,
+	}
+
+	decoded, err := encodeDecodeWithMeta(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if math.Abs(decoded.Gamma-m.Gamma) > 1e-5 {
+		t.Errorf("unexpected gamma: %f, want %f", decoded.Gamma, m.Gamma)
 	}
 }
