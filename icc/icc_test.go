@@ -34,7 +34,13 @@ func Test_D65_XYZ(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// check the profile class
 	if got, want := profile.Class, ClassDisplay; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceRGB; got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
@@ -63,6 +69,94 @@ func Test_D65_XYZ(t *testing.T) {
 	}
 }
 
+func Test_ILFORD_CANpro(t *testing.T) {
+	data, err := os.ReadFile("testdata/ILFORD_CANpro-4000_GPGFG_ProPlatin.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the profile class
+	if got, want := profile.Class, ClassOutput; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceRGB; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func Test_Probev_ICCv2(t *testing.T) {
+	data, err := os.ReadFile("testdata/Probev1_ICCv2.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the profile class
+	if got, want := profile.Class, ClassOutput; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceCMYK; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func Test_Probev_ICCv4(t *testing.T) {
+	data, err := os.ReadFile("testdata/Probev1_ICCv4.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the profile class
+	if got, want := profile.Class, ClassOutput; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceCMYK; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func Test_sRGB_ICC_v4_Appearance(t *testing.T) {
+	data, err := os.ReadFile("testdata/sRGB_ICC_v4_Appearance.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the profile class
+	if got, want := profile.Class, ClassDisplay; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceRGB; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func Test_sRGB_IEC61966(t *testing.T) {
 	data, err := os.ReadFile("testdata/sRGB_IEC61966-2-1_black_scaled.icc")
 	if err != nil {
@@ -74,7 +168,13 @@ func Test_sRGB_IEC61966(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// check the profile class
 	if got, want := profile.Class, ClassDisplay; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceRGB; got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
@@ -100,5 +200,27 @@ func Test_sRGB_IEC61966(t *testing.T) {
 				t.Errorf("decode: got %v, want %v", got, want)
 			}
 		}
+	}
+}
+
+func Test_USWebCoatedSWOP(t *testing.T) {
+	data, err := os.ReadFile("testdata/USWebCoatedSWOP.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	profile, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// check the profile class
+	if got, want := profile.Class, ClassOutput; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+
+	// check the color space
+	if got, want := profile.ColorSpace, ColorSpaceCMYK; got != want {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
