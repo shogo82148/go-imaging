@@ -1,6 +1,7 @@
 package icc
 
 import (
+	"encoding/binary"
 	"math"
 	"os"
 	"testing"
@@ -354,6 +355,60 @@ func TestTagContentParametricCurve(t *testing.T) {
 		curve.Params[5] = S15Fixed16NumberFromFloat64(0.5)
 		curve.Params[6] = S15Fixed16NumberFromFloat64(0.2)
 		check(t, curve, 0, 0.756)
+	})
+}
+
+func TestDecode(t *testing.T) {
+	t.Run("invalid magic", func(t *testing.T) {
+		_, err := Decode(make([]byte, 128))
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("invalid size", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the profile size
+		binary.BigEndian.PutUint32(data, uint32(len(data)+1))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("invalid tag offset", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the tag size
+		binary.BigEndian.PutUint32(data[0x88:], uint32(len(data)-0x30+1))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("tag offset overflow", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the tag size
+		binary.BigEndian.PutUint32(data[0x88:], uint32(0x100000000-0x30))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
 	})
 }
 
