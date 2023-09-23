@@ -2,7 +2,7 @@ package icc
 
 import "fmt"
 
-type Platform uint32
+type Platform Signature
 
 const (
 	PlatformApple     Platform = 0x4150504c // 'APPL'
@@ -23,12 +23,9 @@ func (p Platform) String() string {
 		return "Sun Microsystems, Inc."
 	default:
 		return fmt.Sprintf(
-			"Unknown Platform(%08xh '%c%c%c%c')",
+			"Unknown Platform(%08xh '%s')",
 			uint32(p),
-			printable(byte(p>>24)),
-			printable(byte(p>>16)),
-			printable(byte(p>>8)),
-			printable(byte(p)),
+			Signature(p),
 		)
 	}
 }

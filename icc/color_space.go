@@ -2,7 +2,7 @@ package icc
 
 import "fmt"
 
-type ColorSpace uint32
+type ColorSpace Signature
 
 const (
 	ColorSpaceXYZ   ColorSpace = 0x58595a20 // 'XYZ '
@@ -86,12 +86,9 @@ func (cs ColorSpace) String() string {
 		return "15 color"
 	default:
 		return fmt.Sprintf(
-			"Unknown Color Space(%08xh '%c%c%c%c')",
+			"Unknown Color Space(%08xh '%s')",
 			uint32(cs),
-			printable(byte(cs>>24)),
-			printable(byte(cs>>16)),
-			printable(byte(cs>>8)),
-			printable(byte(cs)),
+			Signature(cs),
 		)
 	}
 }

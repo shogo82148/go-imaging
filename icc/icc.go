@@ -12,9 +12,27 @@ import (
 	"time"
 )
 
-const ICCMagicNumber = 0x61637370 // 'acsp'
+const ICCMagicNumber Signature = 0x61637370 // 'acsp'
 
-type dateTimeNumber struct {
+type Signature uint32
+
+func printable(b byte) byte {
+	if b < 0x20 || b > 0x7e {
+		return '.'
+	}
+	return b
+}
+
+func (s Signature) String() string {
+	var buf [4]byte
+	buf[0] = printable(byte(s >> 24))
+	buf[1] = printable(byte(s >> 16))
+	buf[2] = printable(byte(s >> 8))
+	buf[3] = printable(byte(s))
+	return string(buf[:])
+}
+
+type DateTimeNumber struct {
 	Year   uint16
 	Month  uint16
 	Day    uint16
@@ -23,7 +41,7 @@ type dateTimeNumber struct {
 	Second uint16
 }
 
-func (dt dateTimeNumber) Time() time.Time {
+func (dt DateTimeNumber) Time() time.Time {
 	return time.Date(
 		int(dt.Year),
 		time.Month(dt.Month),
@@ -82,8 +100,6 @@ type XYZNumber struct {
 	Z S15Fixed16Number
 }
 
-type CMMType uint32
-
 type Profile struct {
 	ProfileHeader
 	Tags []TagEntry
@@ -105,13 +121,6 @@ func (v Version) BugFix() int {
 
 func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d.0", v.Major(), v.Minor(), v.BugFix())
-}
-
-func printable(b byte) byte {
-	if b < 0x20 || b > 0x7e {
-		return '.'
-	}
-	return b
 }
 
 type TagEntry struct {
@@ -246,29 +255,29 @@ func (p *Profile) Get(tag Tag) TagContent {
 
 // ProfileHeader is the header of ICC profile.
 type ProfileHeader struct {
-	Size               uint32
-	CMMType            CMMType
-	Version            Version
-	Class              Class
-	ColorSpace         ColorSpace
-	PCS                uint32
-	DateTime           dateTimeNumber
-	Magic              uint32
-	Platform           Platform
-	Flags              uint32
-	Manufacturer       uint32
-	DeviceModel        uint32
-	DeviceAttributes   uint64
-	RenderingIntent    uint32
-	XYZ                XYZNumber
-	ProfileCreator     uint32
-	ProfileID          [2]uint64
-	SpectralPCS        uint32
-	SpectralPCSRange   [6]byte
-	BiSpectralPCSRange [6]byte
-	MCSSignature       uint32
-	SubClass           uint32
-	Reserved           uint32
+	Size                   uint32
+	CMMType                Signature
+	Version                Version
+	Class                  Class
+	ColorSpace             ColorSpace
+	ProfileConnectionSpace ColorSpace
+	DateTime               DateTimeNumber
+	Magic                  Signature
+	Platform               Platform
+	Flags                  uint32
+	Manufacturer           Signature
+	DeviceModel            Signature
+	DeviceAttributes       uint64
+	RenderingIntent        uint32
+	XYZ                    XYZNumber
+	ProfileCreator         uint32
+	ProfileID              [2]uint64
+	SpectralPCS            uint32
+	SpectralPCSRange       [6]byte
+	BiSpectralPCSRange     [6]byte
+	MCSSignature           uint32
+	SubClass               uint32
+	Reserved               uint32
 }
 
 type tagTable struct {

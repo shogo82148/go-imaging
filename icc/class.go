@@ -2,7 +2,7 @@ package icc
 
 import "fmt"
 
-type Class uint32
+type Class Signature
 
 const (
 	ClassInput      Class = 0x73636e72 // 'scnr'
@@ -32,12 +32,9 @@ func (class Class) String() string {
 		return "NamedColor profile"
 	default:
 		return fmt.Sprintf(
-			"Unknown Class(%08xh '%c%c%c%c')",
+			"Unknown Class(%08xh '%s')",
 			uint32(class),
-			printable(byte(class>>24)),
-			printable(byte(class>>16)),
-			printable(byte(class>>8)),
-			printable(byte(class)),
+			Signature(class),
 		)
 	}
 }
