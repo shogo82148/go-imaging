@@ -122,6 +122,9 @@ type decoder struct {
 	// transparency, as opposed to palette transparency.
 	useTransparent bool
 	transparent    [6]byte
+
+	// metadata
+	gamma uint32
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -867,6 +870,18 @@ func (d *decoder) parseIEND(length uint32) error {
 	return d.verifyChecksum()
 }
 
+func (d *decoder) parseGAMA(length uint32) error {
+	if length != 4 {
+		return FormatError("bad GAMA length")
+	}
+	if _, err := io.ReadFull(d.r, d.tmp[:4]); err != nil {
+		return err
+	}
+	d.gamma = binary.BigEndian.Uint32(d.tmp[:4])
+	d.crc.Write(d.tmp[:4])
+	return d.verifyChecksum()
+}
+
 func (d *decoder) parseChunk(configOnly bool) error {
 	// Read the length and chunk type.
 	if _, err := io.ReadFull(d.r, d.tmp[:8]); err != nil {
@@ -926,6 +941,13 @@ func (d *decoder) parseChunk(configOnly bool) error {
 		}
 		d.stage = dsSeenIEND
 		return d.parseIEND(length)
+
+	// Ancillary chunks.
+	case "gAMA":
+		if d.stage < dsSeenIHDR || d.stage > dsSeenIDAT {
+			return chunkOrderError
+		}
+		return d.parseGAMA(length)
 	}
 	if length > 0x7fffffff {
 		return FormatError(fmt.Sprintf("Bad chunk length: %d", length))
