@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 )
@@ -54,8 +55,59 @@ type xyzNumber struct {
 }
 
 type Profile struct {
-	Tags []TagEntry
+	Class      Class
+	ColorSpace ColorSpace
+	Tags       []TagEntry
 }
+
+type Class uint32
+
+const (
+	ClassInput      Class = 0x73636e72 // 'scnr'
+	ClassDisplay    Class = 0x6d6e7472 // 'mntr'
+	ClassOutput     Class = 0x70727472 // 'prtr'
+	ClassLink       Class = 0x6c696e6b // 'link'
+	ClassAbstract   Class = 0x61627374 // 'abst'
+	ClassColorSpace Class = 0x73706163 // 'spac'
+	ClassNamedColor Class = 0x6e6d636c // 'nmcl'
+)
+
+func printable(b byte) byte {
+	if b < 0x20 || b > 0x7e {
+		return '.'
+	}
+	return b
+}
+
+func (class Class) String() string {
+	switch class {
+	case ClassInput:
+		return "Input device profile"
+	case ClassDisplay:
+		return "Display device profile"
+	case ClassOutput:
+		return "Output device profile"
+	case ClassLink:
+		return "DeviceLink profile"
+	case ClassAbstract:
+		return "Abstract profile"
+	case ClassColorSpace:
+		return "ColorSpace profile"
+	case ClassNamedColor:
+		return "NamedColor profile"
+	default:
+		return fmt.Sprintf(
+			"Unknown(%08xh '%c%c%c%c')",
+			uint32(class),
+			printable(byte(class>>24)),
+			printable(byte(class>>16)),
+			printable(byte(class>>8)),
+			printable(byte(class)),
+		)
+	}
+}
+
+type ColorSpace uint32
 
 type TagEntry struct {
 	Tag        Tag
@@ -103,7 +155,9 @@ func Decode(data []byte) (*Profile, error) {
 	}
 
 	return &Profile{
-		Tags: tags,
+		Class:      header.Class,
+		ColorSpace: header.ColorSpace,
+		Tags:       tags,
 	}, nil
 }
 
@@ -121,8 +175,8 @@ type profileHeader struct {
 	Size               uint32
 	CMMType            uint32
 	Version            uint32
-	Class              uint32
-	ColorSpace         uint32
+	Class              Class
+	ColorSpace         ColorSpace
 	PCS                uint32
 	Date               dateTimeNumber
 	Magic              uint32
@@ -390,7 +444,7 @@ type TagContent interface {
 	TagType() TagType
 }
 
-// Curve is a tone response curve.
+// Curve is a tone reproduction curve.
 type Curve interface {
 	EncodeTone(x float64) float64
 	DecodeTone(x float64) float64

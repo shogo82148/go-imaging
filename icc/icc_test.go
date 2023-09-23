@@ -22,25 +22,31 @@ func Test_D65_XYZ(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	redTRC, ok := profile.Get(TagRedTRC).(Curve)
-	if !ok {
-		t.Fatal("TagRedTRC is not a Curve")
+	if got, want := profile.Class, ClassDisplay; got != want {
+		t.Errorf("got %v, want %v", got, want)
 	}
-	tests := []struct {
-		in, out float64
-	}{
-		{0.0, 0.0},
-		{0.1, 0.1},
-		{0.5, 0.5},
-		{0.9, 0.9},
-		{1.0, 1.0},
-	}
-	for _, tt := range tests {
-		if got, want := redTRC.EncodeTone(tt.in), tt.out; !roughEqual(got, want) {
-			t.Errorf("encode: got %v, want %v", got, want)
+
+	for _, tag := range []Tag{TagRedTRC, TagGreenTRC, TagBlueTRC} {
+		trc, ok := profile.Get(tag).(Curve)
+		if !ok {
+			t.Fatal("tag is not a tone reproduction curve")
 		}
-		if got, want := redTRC.DecodeTone(tt.out), tt.in; !roughEqual(got, want) {
-			t.Errorf("decode: got %v, want %v", got, want)
+		tests := []struct {
+			in, out float64
+		}{
+			{0.0, 0.0},
+			{0.1, 0.1},
+			{0.5, 0.5},
+			{0.9, 0.9},
+			{1.0, 1.0},
+		}
+		for _, tt := range tests {
+			if got, want := trc.EncodeTone(tt.in), tt.out; !roughEqual(got, want) {
+				t.Errorf("encode: got %v, want %v", got, want)
+			}
+			if got, want := trc.DecodeTone(tt.out), tt.in; !roughEqual(got, want) {
+				t.Errorf("decode: got %v, want %v", got, want)
+			}
 		}
 	}
 }
@@ -56,25 +62,31 @@ func Test_sRGB_IEC61966(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	redTRC, ok := profile.Get(TagRedTRC).(Curve)
-	if !ok {
-		t.Fatal("TagRedTRC is not a Curve")
+	if got, want := profile.Class, ClassDisplay; got != want {
+		t.Errorf("got %v, want %v", got, want)
 	}
-	tests := []struct {
-		in, out float64
-	}{
-		{0.0, 0.0},
-		{0.1, 0.01002517738612955},
-		{0.5, 0.21404592965590905},
-		{0.9, 0.7874097810330358},
-		{1.0, 1.0},
-	}
-	for _, tt := range tests {
-		if got, want := redTRC.EncodeTone(tt.in), tt.out; !roughEqual(got, want) {
-			t.Errorf("encode: got %v, want %v", got, want)
+
+	for _, tag := range []Tag{TagRedTRC, TagGreenTRC, TagBlueTRC} {
+		trc, ok := profile.Get(tag).(Curve)
+		if !ok {
+			t.Fatal("tag is not a tone reproduction curve")
 		}
-		if got, want := redTRC.DecodeTone(tt.out), tt.in; !roughEqual(got, want) {
-			t.Errorf("decode: got %v, want %v", got, want)
+		tests := []struct {
+			in, out float64
+		}{
+			{0.0, 0.0},
+			{0.1, 0.01002517738612955},
+			{0.5, 0.21404592965590905},
+			{0.9, 0.7874097810330358},
+			{1.0, 1.0},
+		}
+		for _, tt := range tests {
+			if got, want := trc.EncodeTone(tt.in), tt.out; !roughEqual(got, want) {
+				t.Errorf("encode: got %v, want %v", got, want)
+			}
+			if got, want := trc.DecodeTone(tt.out), tt.in; !roughEqual(got, want) {
+				t.Errorf("decode: got %v, want %v", got, want)
+			}
 		}
 	}
 }
