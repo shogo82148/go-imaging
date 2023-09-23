@@ -3,18 +3,14 @@ package icc
 import (
 	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func FuzzDecode(f *testing.F) {
 	testdata := []string{
 		"testdata/D65_XYZ.icc",
-		"testdata/ILFORD_CANpro-4000_GPGFG_ProPlatin.icc",
 		"testdata/iPhone12Pro.icc",
-		"testdata/Probev1_ICCv2.icc",
-		"testdata/Probev1_ICCv4.icc",
-		"testdata/sRGB_ICC_v4_Appearance.icc",
-		"testdata/sRGB_IEC61966-2-1_black_scaled.icc",
-		"testdata/USWebCoatedSWOP.icc",
 	}
 	for _, path := range testdata {
 		data, err := os.ReadFile(path)
@@ -25,9 +21,36 @@ func FuzzDecode(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
-		_, err := Decode(data)
+		p0, err := Decode(data)
 		if err != nil {
 			return
 		}
+
+		encoded0, err := Encode(p0)
+		if err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+
+		p1, err := Decode(encoded0)
+		if err != nil {
+			t.Fatalf("failed to decode: %v", err)
+		}
+
+		// ignore differences in the profile size
+		p0.Size = 0
+		p1.Size = 0
+
+		if diff := cmp.Diff(p0, p1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+
+		encoded1, err := Encode(p1)
+		if err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+		if diff := cmp.Diff(encoded0, encoded1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+
 	})
 }
