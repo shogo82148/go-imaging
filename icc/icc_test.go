@@ -1,12 +1,17 @@
 package icc
 
 import (
-	"log"
+	"math"
 	"os"
 	"testing"
 )
 
-func TestXxx(t *testing.T) {
+func roughEqual(a, b float64) bool {
+	d := math.Abs(a - b)
+	return d < 1.0/0xffff
+}
+
+func Test_sRGB_IEC61966(t *testing.T) {
 	data, err := os.ReadFile("testdata/sRGB_IEC61966-2-1_black_scaled.icc")
 	if err != nil {
 		t.Fatal(err)
@@ -16,9 +21,26 @@ func TestXxx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = profile
 
-	for _, t := range profile.Tags {
-		log.Printf("%x, %#v", t.Tag, t.TagContent)
+	redTRC, ok := profile.Get(TagRedTRC).(Curve)
+	if !ok {
+		t.Fatal("TagRedTRC is not a Curve")
+	}
+	tests := []struct {
+		in, out float64
+	}{
+		{0.0, 0.0},
+		{0.1, 0.01002517738612955},
+		{0.5, 0.21404592965590905},
+		{0.9, 0.7874097810330358},
+		{1.0, 1.0},
+	}
+	for _, tt := range tests {
+		if got, want := redTRC.EncodeTone(tt.in), tt.out; !roughEqual(got, want) {
+			t.Errorf("encode: got %v, want %v", got, want)
+		}
+		if got, want := redTRC.DecodeTone(tt.out), tt.in; !roughEqual(got, want) {
+			t.Errorf("decode: got %v, want %v", got, want)
+		}
 	}
 }
