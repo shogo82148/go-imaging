@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"time"
 )
 
 const ICCmagicNumber = 0x61637370 // 'acsp'
@@ -19,6 +20,19 @@ type dateTimeNumber struct {
 	Hour   uint16
 	Minute uint16
 	Second uint16
+}
+
+func (dt dateTimeNumber) Time() time.Time {
+	return time.Date(
+		int(dt.Year),
+		time.Month(dt.Month),
+		int(dt.Day),
+		int(dt.Hour),
+		int(dt.Minute),
+		int(dt.Second),
+		0,
+		time.UTC,
+	)
 }
 
 type positionNumber struct {
@@ -58,6 +72,7 @@ type Profile struct {
 	Version    Version
 	Class      Class
 	ColorSpace ColorSpace
+	Time       time.Time
 	Tags       []TagEntry
 }
 
@@ -268,6 +283,7 @@ func Decode(data []byte) (*Profile, error) {
 	return &Profile{
 		Class:      header.Class,
 		ColorSpace: header.ColorSpace,
+		Time:       header.DateTime.Time(),
 		Tags:       tags,
 	}, nil
 }
@@ -289,7 +305,7 @@ type profileHeader struct {
 	Class              Class
 	ColorSpace         ColorSpace
 	PCS                uint32
-	Date               dateTimeNumber
+	DateTime           dateTimeNumber
 	Magic              uint32
 	Platform           uint32
 	Flags              uint32
