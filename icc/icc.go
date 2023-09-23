@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding"
 	"encoding/binary"
+	"errors"
 	"math"
 	"slices"
 )
+
+const ICCmagicNumber = 0x61637370 // 'acsp'
 
 type dateTimeNumber struct {
 	Year   uint16
@@ -64,6 +67,9 @@ func Decode(data []byte) (*Profile, error) {
 	var header profileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
 		return nil, err
+	}
+	if header.Magic != ICCmagicNumber {
+		return nil, errors.New("icc: invalid magic number")
 	}
 
 	var tagCount uint32
