@@ -11,6 +11,18 @@ func roughEqual(a, b float64) bool {
 	return d < 1.0/0xffff
 }
 
+func TestVersion(t *testing.T) {
+	if got, want := Version(0x05000000).String(), "5.0.0.0"; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if got, want := Version(0x04400000).String(), "4.4.0.0"; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if got, want := Version(0x02400000).String(), "2.4.0.0"; got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func Test_D65_XYZ(t *testing.T) {
 	data, err := os.ReadFile("testdata/D65_XYZ.icc")
 	if err != nil {

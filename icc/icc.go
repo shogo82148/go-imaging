@@ -55,9 +55,28 @@ type xyzNumber struct {
 }
 
 type Profile struct {
+	Version    Version
 	Class      Class
 	ColorSpace ColorSpace
 	Tags       []TagEntry
+}
+
+type Version uint32
+
+func (v Version) Major() int {
+	return int(v >> 24)
+}
+
+func (v Version) Minor() int {
+	return int(v >> 20 & 0xf)
+}
+
+func (v Version) BugFix() int {
+	return int(v >> 16 & 0xf)
+}
+
+func (v Version) String() string {
+	return fmt.Sprintf("%d.%d.%d.0", v.Major(), v.Minor(), v.BugFix())
 }
 
 type Class uint32
@@ -174,7 +193,7 @@ func (p *Profile) Get(tag Tag) TagContent {
 type profileHeader struct {
 	Size               uint32
 	CMMType            uint32
-	Version            uint32
+	Version            Version
 	Class              Class
 	ColorSpace         ColorSpace
 	PCS                uint32
