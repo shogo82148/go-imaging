@@ -1,9 +1,12 @@
 package icc
 
 import (
+	"encoding/binary"
 	"math"
 	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func roughEqual(a, b float64) bool {
@@ -353,4 +356,96 @@ func TestTagContentParametricCurve(t *testing.T) {
 		curve.Params[6] = S15Fixed16NumberFromFloat64(0.2)
 		check(t, curve, 0, 0.756)
 	})
+}
+
+func TestDecode(t *testing.T) {
+	t.Run("invalid magic", func(t *testing.T) {
+		_, err := Decode(make([]byte, 128))
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("invalid size", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the profile size
+		binary.BigEndian.PutUint32(data, uint32(len(data)+1))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("invalid tag offset", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the tag size
+		binary.BigEndian.PutUint32(data[0x88:], uint32(len(data)-0x30+1))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("tag offset overflow", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the tag size
+		binary.BigEndian.PutUint32(data[0x88:], uint32(0x100000000-0x30))
+
+		_, err = Decode(data)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+}
+
+func TestEncode(t *testing.T) {
+	data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p0, err := Decode(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encoded0, err := Encode(p0)
+	if err != nil {
+		t.Fatalf("failed to encode: %v", err)
+	}
+
+	p1, err := Decode(encoded0)
+	if err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+
+	// ignore differences in the profile size
+	p0.Size = 0
+	p1.Size = 0
+
+	if diff := cmp.Diff(p0, p1); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
+
+	encoded1, err := Encode(p1)
+	if err != nil {
+		t.Fatalf("failed to encode: %v", err)
+	}
+	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
 }

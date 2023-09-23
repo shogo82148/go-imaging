@@ -128,6 +128,9 @@ func Decode(data []byte) (*Profile, error) {
 	if header.Magic != ICCMagicNumber {
 		return nil, errors.New("icc: invalid magic number")
 	}
+	if header.Size > uint32(len(data)) {
+		return nil, errors.New("icc: invalid profile size")
+	}
 
 	var tagCount uint32
 	if err := binary.Read(r, binary.BigEndian, &tagCount); err != nil {
@@ -140,8 +143,17 @@ func Decode(data []byte) (*Profile, error) {
 
 	tags := make([]TagEntry, tagCount)
 	for i, t := range table {
+		if t.Offset+t.Size > header.Size {
+			return nil, errors.New("icc: invalid tag table")
+		}
+		if t.Offset > t.Offset+t.Size {
+			// overflow
+			return nil, errors.New("icc: invalid tag table")
+		}
+
 		tagData := data[t.Offset : t.Offset+t.Size]
 		tagType := TagType(binary.BigEndian.Uint32(tagData))
+
 		var content TagContent
 		switch tagType {
 		case TagTypeCurve:
