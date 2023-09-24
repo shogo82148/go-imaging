@@ -8,6 +8,7 @@
 package png
 
 import (
+	"bufio"
 	"compress/zlib"
 	"encoding/binary"
 	"fmt"
@@ -16,6 +17,8 @@ import (
 	"image"
 	"image/color"
 	"io"
+
+	"github.com/shogo82148/go-imaging/icc"
 )
 
 // Color type, as per the PNG spec.
@@ -124,8 +127,10 @@ type decoder struct {
 	transparent    [6]byte
 
 	// metadata
-	gamma uint32
-	srgb  *SRGB
+	gamma       uint32
+	srgb        *SRGB
+	profileName string
+	icc         *icc.Profile
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -897,6 +902,51 @@ func (d *decoder) parseSRGB(length uint32) error {
 	return d.verifyChecksum()
 }
 
+func (d *decoder) parseICCP(length uint32) error {
+	// limit the length and compute the checksum.
+	r := io.LimitReader(io.TeeReader(d.r, d.crc), int64(length))
+
+	// Read the null-terminated profile name.
+	br := bufio.NewReader(r)
+	name, err := br.ReadString('\x00')
+	if err != nil {
+		return FormatError("bad iCCP profile name")
+	}
+	if len(name) == 0 || name[len(name)-1] != '\x00' {
+		return FormatError("bad iCCP profile name")
+	}
+	d.profileName = name[:len(name)-1]
+
+	// Read the compression method.
+	method, err := br.ReadByte()
+	if err != nil {
+		return err
+	}
+	// Only compression method 0 is defined.
+	if method != 0 {
+		return FormatError("bad iCCP compression method")
+	}
+
+	zr, err := zlib.NewReader(br)
+	if err != nil {
+		return FormatError("bad iCCP: " + err.Error())
+	}
+	p, err := icc.Decode(zr)
+	if err != nil {
+		return FormatError("bad iCCP: " + err.Error())
+	}
+	d.icc = p
+	if err := zr.Close(); err != nil {
+		return FormatError("bad iCCP: " + err.Error())
+	}
+
+	// discard the rest.
+	if _, err := io.Copy(io.Discard, r); err != nil {
+		return err
+	}
+	return d.verifyChecksum()
+}
+
 func (d *decoder) parseChunk(configOnly bool) error {
 	// Read the length and chunk type.
 	if _, err := io.ReadFull(d.r, d.tmp[:8]); err != nil {
@@ -968,6 +1018,11 @@ func (d *decoder) parseChunk(configOnly bool) error {
 			return chunkOrderError
 		}
 		return d.parseSRGB(length)
+	case "iCCP":
+		if d.stage < dsSeenIHDR || d.stage > dsSeenIDAT {
+			return chunkOrderError
+		}
+		return d.parseICCP(length)
 	}
 	if length > 0x7fffffff {
 		return FormatError(fmt.Sprintf("Bad chunk length: %d", length))

@@ -8,6 +8,8 @@ import (
 	"io"
 	"math"
 	"strconv"
+
+	"github.com/shogo82148/go-imaging/icc"
 )
 
 // ImageWithMeta is a PNG image with metadata.
@@ -21,6 +23,13 @@ type ImageWithMeta struct {
 	// SRGB is the sRGB information of the image.
 	// If SRGB is nil, the image has no sRGB information.
 	SRGB *SRGB
+
+	// ICCProfileName is the name of the ICC profile of the image.
+	ICCProfileName string
+
+	// ICCProfile is the ICC profile of the image.
+	// If ICCProfile is nil, the image has no ICC profile.
+	ICCProfile *icc.Profile
 }
 
 type SRGB struct {
@@ -91,6 +100,10 @@ func DecodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 		img.Gamma = float64(d.gamma) / 100000
 	}
 	img.SRGB = d.srgb
+	if d.icc != nil {
+		img.ICCProfileName = d.profileName
+		img.ICCProfile = d.icc
+	}
 	return img, nil
 }
 

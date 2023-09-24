@@ -43,6 +43,27 @@ func TestDecodeWithMeta_Gamma(t *testing.T) {
 	}
 }
 
+func TestDecodeWithMeta_ICCP(t *testing.T) {
+	f, err := os.Open("testdata/icc-profile.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	img, err := DecodeWithMeta(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if img.ICCProfile == nil {
+		t.Fatal("unexpected nil ICC Profile")
+	}
+
+	if got, want := img.ICCProfileName, "ICC Profile"; got != want {
+		t.Errorf("unexpected ICC Profile Name: %q, want %q", got, want)
+	}
+}
+
 func TestEncodeWithMeta_Gamma(t *testing.T) {
 	m := &ImageWithMeta{
 		Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
