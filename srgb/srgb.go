@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/shogo82148/float16"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
@@ -22,6 +23,8 @@ func Linearize(img image.Image) *fp16.NRGBAh {
 		return linearizeRGBA(img)
 	case *image.RGBA64:
 		return linearizeRGBA64(img)
+	case *image.NRGBA:
+		return linearizeNRGBA(img)
 	}
 	return linearize(img)
 }
@@ -69,6 +72,22 @@ func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 			fg = encodedToLinear(fg)
 			fb = encodedToLinear(fb)
 			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+		}
+	})
+	return ret
+}
+
+func linearizeNRGBA(img *image.NRGBA) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.NRGBAAt(x, y)
+			fr := encodedToLinearTable[c.R]
+			fg := encodedToLinearTable[c.G]
+			fb := encodedToLinearTable[c.B]
+			fa := float16.FromFloat64(float64(c.A) / 0xff)
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
 		}
 	})
 	return ret
