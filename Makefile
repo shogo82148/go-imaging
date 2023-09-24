@@ -5,3 +5,4 @@ examples:
 .PHONY: golden
 golden:
 	go run ./resize/internal/cmd/golden ./resize/testdata
+	go run ./srgb/internal/cmd/golden ./srgb/testdata

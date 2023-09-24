@@ -1,4 +1,4 @@
-//go:generate go run internal/gen/main.go
+//go:generate go run ./internal/cmd/gen
 
 // Package srgb handles [sRGB] colors.
 //
@@ -10,10 +10,13 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/shogo82148/float16"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
 )
+
+var one = float16.FromFloat64(1)
 
 // Linearize decodes an sRGB color encoded image to a linear color image.
 func Linearize(img image.Image) *fp16.NRGBAh {
@@ -22,6 +25,20 @@ func Linearize(img image.Image) *fp16.NRGBAh {
 		return linearizeRGBA(img)
 	case *image.RGBA64:
 		return linearizeRGBA64(img)
+	case *image.NRGBA:
+		return linearizeNRGBA(img)
+	case *image.NRGBA64:
+		return linearizeNRGBA64(img)
+	case *image.Gray:
+		return linearizeGray(img)
+	case *image.Gray16:
+		return linearizeGray16(img)
+	case *image.Alpha:
+		return linearizeAlpha(img)
+	case *image.Alpha16:
+		return linearizeAlpha16(img)
+	case *image.Paletted:
+		return linearizePaletted(img)
 	}
 	return linearize(img)
 }
@@ -32,19 +49,29 @@ func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.RGBAAt(x, y)
-			fr := float64(c.R) / 0xff
-			fg := float64(c.G) / 0xff
-			fb := float64(c.B) / 0xff
-			fa := float64(c.A) / 0xff
-			if fa != 0 {
+			if c.A == 0 {
+				fr := encodedToLinearTable[c.R]
+				fg := encodedToLinearTable[c.G]
+				fb := encodedToLinearTable[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if c.A == 0xff {
+				fr := encodedToLinearTable[c.R]
+				fg := encodedToLinearTable[c.G]
+				fb := encodedToLinearTable[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
+			} else {
+				fr := float64(c.R) / 0xff
+				fg := float64(c.G) / 0xff
+				fb := float64(c.B) / 0xff
+				fa := float64(c.A) / 0xff
 				fr /= fa
 				fg /= fa
 				fb /= fa
+				fr = encodedToLinear(fr)
+				fg = encodedToLinear(fg)
+				fb = encodedToLinear(fb)
+				ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 			}
-			fr = encodedToLinear(fr)
-			fg = encodedToLinear(fg)
-			fb = encodedToLinear(fb)
-			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
@@ -56,19 +83,142 @@ func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.RGBA64At(x, y)
-			fr := float64(c.R) / 0xffff
-			fg := float64(c.G) / 0xffff
-			fb := float64(c.B) / 0xffff
-			fa := float64(c.A) / 0xffff
-			if fa != 0 {
+			if c.A == 0 {
+				fr := encodedToLinearTable16[c.R]
+				fg := encodedToLinearTable16[c.G]
+				fb := encodedToLinearTable16[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if c.A == 0xffff {
+				fr := encodedToLinearTable16[c.R]
+				fg := encodedToLinearTable16[c.G]
+				fb := encodedToLinearTable16[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
+			} else {
+				fr := float64(c.R) / 0xffff
+				fg := float64(c.G) / 0xffff
+				fb := float64(c.B) / 0xffff
+				fa := float64(c.A) / 0xffff
 				fr /= fa
 				fg /= fa
 				fb /= fa
+				fr = encodedToLinear(fr)
+				fg = encodedToLinear(fg)
+				fb = encodedToLinear(fb)
+				ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 			}
-			fr = encodedToLinear(fr)
-			fg = encodedToLinear(fg)
-			fb = encodedToLinear(fb)
-			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
+		}
+	})
+	return ret
+}
+
+func linearizeNRGBA(img *image.NRGBA) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.NRGBAAt(x, y)
+			fr := encodedToLinearTable[c.R]
+			fg := encodedToLinearTable[c.G]
+			fb := encodedToLinearTable[c.B]
+			fa := float16.FromFloat64(float64(c.A) / 0xff)
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
+		}
+	})
+	return ret
+}
+
+func linearizeNRGBA64(img *image.NRGBA64) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.NRGBA64At(x, y)
+			fr := encodedToLinearTable16[c.R]
+			fg := encodedToLinearTable16[c.G]
+			fb := encodedToLinearTable16[c.B]
+			fa := float16.FromFloat64(float64(c.A) / 0xffff)
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
+		}
+	})
+	return ret
+}
+
+func linearizeGray(img *image.Gray) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.GrayAt(x, y)
+			fy := encodedToLinearTable[c.Y]
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fy, G: fy, B: fy, A: one})
+		}
+	})
+	return ret
+}
+
+func linearizeGray16(img *image.Gray16) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.Gray16At(x, y)
+			fy := encodedToLinearTable16[c.Y]
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fy, G: fy, B: fy, A: one})
+		}
+	})
+	return ret
+}
+
+func linearizeAlpha(img *image.Alpha) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.AlphaAt(x, y)
+			fa := float64(c.A) / 0xff
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: float16.FromFloat64(fa)})
+		}
+	})
+	return ret
+}
+
+func linearizeAlpha16(img *image.Alpha16) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.Alpha16At(x, y)
+			fa := float64(c.A) / 0xffff
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: float16.FromFloat64(fa)})
+		}
+	})
+	return ret
+}
+
+func linearizePaletted(img *image.Paletted) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	palette := make([]fp16color.NRGBAh, len(img.Palette))
+	for i, c := range img.Palette {
+		r, g, b, a := c.RGBA()
+		fr := float64(r) / 0xffff
+		fg := float64(g) / 0xffff
+		fb := float64(b) / 0xffff
+		fa := float64(a) / 0xffff
+		if a != 0 {
+			fr /= fa
+			fg /= fa
+			fb /= fa
+		}
+		fr = encodedToLinear(fr)
+		fg = encodedToLinear(fg)
+		fb = encodedToLinear(fb)
+		palette[i] = fp16color.NewNRGBAh(fr, fg, fb, fa)
+	}
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := palette[img.ColorIndexAt(x, y)]
+			ret.SetNRGBAh(x, y, c)
 		}
 	})
 	return ret
@@ -81,19 +231,29 @@ func linearize(img image.Image) *fp16.NRGBAh {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.At(x, y)
 			r, g, b, a := c.RGBA()
-			fr := float64(r) / 0xffff
-			fg := float64(g) / 0xffff
-			fb := float64(b) / 0xffff
-			fa := float64(a) / 0xffff
-			if fa != 0 {
+			if a == 0 {
+				fr := encodedToLinearTable16[r]
+				fg := encodedToLinearTable16[g]
+				fb := encodedToLinearTable16[b]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if a == 0xffff {
+				fr := encodedToLinearTable16[r]
+				fg := encodedToLinearTable16[g]
+				fb := encodedToLinearTable16[b]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
+			} else {
+				fr := float64(r) / 0xffff
+				fg := float64(g) / 0xffff
+				fb := float64(b) / 0xffff
+				fa := float64(a) / 0xffff
 				fr /= fa
 				fg /= fa
 				fb /= fa
+				fr = encodedToLinear(fr)
+				fg = encodedToLinear(fg)
+				fb = encodedToLinear(fb)
+				ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 			}
-			fr = encodedToLinear(fr)
-			fg = encodedToLinear(fg)
-			fb = encodedToLinear(fb)
-			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
