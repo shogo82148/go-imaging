@@ -31,6 +31,8 @@ func Linearize(img image.Image) *fp16.NRGBAh {
 		return linearizeNRGBA64(img)
 	case *image.Gray:
 		return linearizeGray(img)
+	case *image.Gray16:
+		return linearizeGray16(img)
 	case *image.Paletted:
 		return linearizePaletted(img)
 	}
@@ -144,6 +146,19 @@ func linearizeGray(img *image.Gray) *fp16.NRGBAh {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.GrayAt(x, y)
 			fy := encodedToLinearTable[c.Y]
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fy, G: fy, B: fy, A: one})
+		}
+	})
+	return ret
+}
+
+func linearizeGray16(img *image.Gray16) *fp16.NRGBAh {
+	bounds := img.Bounds()
+	ret := fp16.NewNRGBAh(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			c := img.Gray16At(x, y)
+			fy := encodedToLinearTable16[c.Y]
 			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fy, G: fy, B: fy, A: one})
 		}
 	})
