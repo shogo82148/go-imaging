@@ -16,6 +16,8 @@ import (
 	"github.com/shogo82148/go-imaging/internal/parallels"
 )
 
+var one = float16.FromFloat64(1)
+
 // Linearize decodes an sRGB color encoded image to a linear color image.
 func Linearize(img image.Image) *fp16.NRGBAh {
 	switch img := img.(type) {
@@ -32,7 +34,6 @@ func Linearize(img image.Image) *fp16.NRGBAh {
 }
 
 func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
-	one := float16.FromFloat64(1)
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -69,19 +70,26 @@ func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.RGBA64At(x, y)
-			fr := float64(c.R) / 0xffff
-			fg := float64(c.G) / 0xffff
-			fb := float64(c.B) / 0xffff
-			fa := float64(c.A) / 0xffff
-			if fa != 0 {
-				fr /= fa
-				fg /= fa
-				fb /= fa
+			if c.A == 0 {
+				fr := encodedToLinearTable16[c.R]
+				fg := encodedToLinearTable16[c.G]
+				fb := encodedToLinearTable16[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if c.A == 0xffff {
+				fr := encodedToLinearTable16[c.R]
+				fg := encodedToLinearTable16[c.G]
+				fb := encodedToLinearTable16[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
+			} else {
+				fr := float64(c.R) / 0xffff
+				fg := float64(c.G) / 0xffff
+				fb := float64(c.B) / 0xffff
+				fa := float64(c.A) / 0xffff
+				fr = encodedToLinear(fr)
+				fg = encodedToLinear(fg)
+				fb = encodedToLinear(fb)
+				ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 			}
-			fr = encodedToLinear(fr)
-			fg = encodedToLinear(fg)
-			fb = encodedToLinear(fb)
-			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
