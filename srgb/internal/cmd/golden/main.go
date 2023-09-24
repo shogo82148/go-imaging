@@ -33,7 +33,7 @@ func main() {
 
 	for _, g := range generators {
 		img := g.input()
-		output := srgb.Linearize(img)
+		output := srgb.DecodeTone(img)
 		saveGolden(filepath.Join(dir, g.name+".golden.gz"), output)
 	}
 
@@ -60,7 +60,7 @@ func saveGolden(path string, img *fp16.NRGBAh) {
 
 func generateNonLinearizeGolden(dir string) {
 	input := golden.NewNRGBAh()
-	output := srgb.NonLinearize(input)
+	output := srgb.EncodeTone(input)
 
 	// save the output as the raw data.
 	f, err := os.OpenFile(filepath.Join(dir, "non-linearize.golden.gz"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)

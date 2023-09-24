@@ -18,32 +18,32 @@ import (
 
 var one = float16.FromFloat64(1)
 
-// Linearize decodes an sRGB color encoded image to a linear color image.
-func Linearize(img image.Image) *fp16.NRGBAh {
+// DecodeTone decodes an sRGB color encoded image to a linear color image.
+func DecodeTone(img image.Image) *fp16.NRGBAh {
 	switch img := img.(type) {
 	case *image.RGBA:
-		return linearizeRGBA(img)
+		return decodeToneRGBA(img)
 	case *image.RGBA64:
-		return linearizeRGBA64(img)
+		return decodeToneRGBA64(img)
 	case *image.NRGBA:
-		return linearizeNRGBA(img)
+		return decodeToneNRGBA(img)
 	case *image.NRGBA64:
-		return linearizeNRGBA64(img)
+		return decodeToneNRGBA64(img)
 	case *image.Gray:
-		return linearizeGray(img)
+		return decodeToneGray(img)
 	case *image.Gray16:
-		return linearizeGray16(img)
+		return decodeToneGray16(img)
 	case *image.Alpha:
-		return linearizeAlpha(img)
+		return decodeToneAlpha(img)
 	case *image.Alpha16:
-		return linearizeAlpha16(img)
+		return decodeToneAlpha16(img)
 	case *image.Paletted:
-		return linearizePaletted(img)
+		return decodeTonePaletted(img)
 	}
-	return linearize(img)
+	return decodeTone(img)
 }
 
-func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
+func decodeToneRGBA(img *image.RGBA) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -77,7 +77,7 @@ func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
+func decodeToneRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -111,7 +111,7 @@ func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeNRGBA(img *image.NRGBA) *fp16.NRGBAh {
+func decodeToneNRGBA(img *image.NRGBA) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -127,7 +127,7 @@ func linearizeNRGBA(img *image.NRGBA) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeNRGBA64(img *image.NRGBA64) *fp16.NRGBAh {
+func decodeToneNRGBA64(img *image.NRGBA64) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -143,7 +143,7 @@ func linearizeNRGBA64(img *image.NRGBA64) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeGray(img *image.Gray) *fp16.NRGBAh {
+func decodeToneGray(img *image.Gray) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -156,7 +156,7 @@ func linearizeGray(img *image.Gray) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeGray16(img *image.Gray16) *fp16.NRGBAh {
+func decodeToneGray16(img *image.Gray16) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -169,7 +169,7 @@ func linearizeGray16(img *image.Gray16) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeAlpha(img *image.Alpha) *fp16.NRGBAh {
+func decodeToneAlpha(img *image.Alpha) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -182,7 +182,7 @@ func linearizeAlpha(img *image.Alpha) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizeAlpha16(img *image.Alpha16) *fp16.NRGBAh {
+func decodeToneAlpha16(img *image.Alpha16) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -195,7 +195,7 @@ func linearizeAlpha16(img *image.Alpha16) *fp16.NRGBAh {
 	return ret
 }
 
-func linearizePaletted(img *image.Paletted) *fp16.NRGBAh {
+func decodeTonePaletted(img *image.Paletted) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	palette := make([]fp16color.NRGBAh, len(img.Palette))
@@ -224,7 +224,7 @@ func linearizePaletted(img *image.Paletted) *fp16.NRGBAh {
 	return ret
 }
 
-func linearize(img image.Image) *fp16.NRGBAh {
+func decodeTone(img image.Image) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -259,8 +259,8 @@ func linearize(img image.Image) *fp16.NRGBAh {
 	return ret
 }
 
-// NonLinearize encodes a linear color image to an sRGB color encoded image.
-func NonLinearize(img *fp16.NRGBAh) *image.NRGBA64 {
+// EncodeTone encodes a linear color image to an sRGB color encoded image.
+func EncodeTone(img *fp16.NRGBAh) *image.NRGBA64 {
 	bounds := img.Bounds()
 	ret := image.NewNRGBA64(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
