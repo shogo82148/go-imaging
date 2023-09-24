@@ -1,4 +1,4 @@
-//go:generate go run internal/gen/main.go
+//go:generate go run ./internal/cmd/gen
 
 // Package srgb handles [sRGB] colors.
 //
