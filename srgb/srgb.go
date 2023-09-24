@@ -38,15 +38,16 @@ func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.RGBAAt(x, y)
-			if c.A == 0 || c.A == 0xff {
+			if c.A == 0 {
 				fr := encodedToLinearTable[c.R]
 				fg := encodedToLinearTable[c.G]
 				fb := encodedToLinearTable[c.B]
-				var fa float16.Float16
-				if c.A != 0 {
-					fa = one
-				}
-				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if c.A == 0xff {
+				fr := encodedToLinearTable[c.R]
+				fg := encodedToLinearTable[c.G]
+				fb := encodedToLinearTable[c.B]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
 			} else {
 				fr := float64(c.R) / 0xff
 				fg := float64(c.G) / 0xff
