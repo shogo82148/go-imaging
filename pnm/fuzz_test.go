@@ -25,26 +25,21 @@ func FuzzDecode(f *testing.F) {
 	for _, name := range testFiles {
 		data, err := os.ReadFile(filepath.Join("testdata", name))
 		if err != nil {
-			panic(err)
+			f.Fatal(err)
 		}
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		r := bytes.NewReader(data)
-		Decode(r)
-	})
-}
-
-func FuzzDecodeConfig(f *testing.F) {
-	for _, name := range testFiles {
-		data, err := os.ReadFile(filepath.Join("testdata", name))
+		cfg, err := DecodeConfig(r)
 		if err != nil {
-			panic(err)
+			return
 		}
-		f.Add(data)
-	}
-	f.Fuzz(func(t *testing.T, data []byte) {
-		r := bytes.NewReader(data)
-		DecodeConfig(r)
+		if cfg.Height*cfg.Width > 16*1024 {
+			return // too large
+		}
+
+		r.Reset(data)
+		Decode(r)
 	})
 }
