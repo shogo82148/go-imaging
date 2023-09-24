@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"math"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -432,10 +433,11 @@ func TestEncode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	encoded0, err := Encode(p0)
-	if err != nil {
+	buf := new(bytes.Buffer)
+	if err := p0.Encode(buf); err != nil {
 		t.Fatalf("failed to encode: %v", err)
 	}
+	encoded0 := slices.Clone(buf.Bytes())
 
 	p1, err := Decode(bytes.NewReader(encoded0))
 	if err != nil {
@@ -450,10 +452,12 @@ func TestEncode(t *testing.T) {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 
-	encoded1, err := Encode(p1)
-	if err != nil {
+	buf.Reset()
+	if err := p1.Encode(buf); err != nil {
 		t.Fatalf("failed to encode: %v", err)
 	}
+	encoded1 := slices.Clone(buf.Bytes())
+
 	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
