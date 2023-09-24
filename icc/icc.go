@@ -6,12 +6,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"slices"
 	"strconv"
 	"time"
 )
 
+const iccHeaderSize = 128
 const ICCMagicNumber Signature = 0x61637370 // 'acsp'
 
 type Signature uint32
@@ -128,8 +130,7 @@ type TagEntry struct {
 	TagContent TagContent
 }
 
-func Decode(data []byte) (*Profile, error) {
-	r := bytes.NewReader(data)
+func Decode(r io.Reader) (*Profile, error) {
 	var header ProfileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
 		return nil, err
@@ -137,16 +138,22 @@ func Decode(data []byte) (*Profile, error) {
 	if header.Magic != ICCMagicNumber {
 		return nil, errors.New("icc: invalid magic number")
 	}
-	if header.Size > uint32(len(data)) {
+	if header.Size < iccHeaderSize {
 		return nil, errors.New("icc: invalid profile size")
 	}
 
+	data := make([]byte, header.Size-iccHeaderSize)
+	if _, err := io.ReadFull(r, data); err != nil && err != io.EOF {
+		return nil, err
+	}
+	br := bytes.NewReader(data)
+
 	var tagCount uint32
-	if err := binary.Read(r, binary.BigEndian, &tagCount); err != nil {
+	if err := binary.Read(br, binary.BigEndian, &tagCount); err != nil {
 		return nil, err
 	}
 	table := make([]tagTable, tagCount)
-	if err := binary.Read(r, binary.BigEndian, &table); err != nil {
+	if err := binary.Read(br, binary.BigEndian, &table); err != nil {
 		return nil, err
 	}
 
@@ -160,7 +167,7 @@ func Decode(data []byte) (*Profile, error) {
 			return nil, errors.New("icc: invalid tag table")
 		}
 
-		tagData := data[t.Offset : t.Offset+t.Size]
+		tagData := data[t.Offset-iccHeaderSize : t.Offset+t.Size-iccHeaderSize]
 		tagType := TagType(binary.BigEndian.Uint32(tagData))
 
 		var content TagContent

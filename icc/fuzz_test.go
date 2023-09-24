@@ -1,6 +1,7 @@
 package icc
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -8,7 +9,7 @@ import (
 
 func FuzzDecode(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-		p0, err := Decode(data)
+		p0, err := Decode(bytes.NewReader(data))
 		if err != nil {
 			return
 		}
@@ -18,7 +19,7 @@ func FuzzDecode(f *testing.F) {
 			t.Fatalf("failed to encode: %v", err)
 		}
 
-		p1, err := Decode(encoded0)
+		p1, err := Decode(bytes.NewReader(encoded0))
 		if err != nil {
 			t.Fatalf("failed to decode: %v", err)
 		}
