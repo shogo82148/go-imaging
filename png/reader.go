@@ -125,6 +125,7 @@ type decoder struct {
 
 	// metadata
 	gamma uint32
+	srgb  *SRGB
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -882,6 +883,20 @@ func (d *decoder) parseGAMA(length uint32) error {
 	return d.verifyChecksum()
 }
 
+func (d *decoder) parseSRGB(length uint32) error {
+	if length != 1 {
+		return FormatError("bad sRGB length")
+	}
+	if _, err := io.ReadFull(d.r, d.tmp[:1]); err != nil {
+		return err
+	}
+	d.srgb = &SRGB{
+		RenderingIntent: RenderingIntent(d.tmp[0]),
+	}
+	d.crc.Write(d.tmp[:1])
+	return d.verifyChecksum()
+}
+
 func (d *decoder) parseChunk(configOnly bool) error {
 	// Read the length and chunk type.
 	if _, err := io.ReadFull(d.r, d.tmp[:8]); err != nil {
@@ -948,6 +963,11 @@ func (d *decoder) parseChunk(configOnly bool) error {
 			return chunkOrderError
 		}
 		return d.parseGAMA(length)
+	case "sRGB":
+		if d.stage < dsSeenIHDR || d.stage > dsSeenIDAT {
+			return chunkOrderError
+		}
+		return d.parseSRGB(length)
 	}
 	if length > 0x7fffffff {
 		return FormatError(fmt.Sprintf("Bad chunk length: %d", length))

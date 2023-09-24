@@ -58,3 +58,25 @@ func TestEncodeWithMeta_Gamma(t *testing.T) {
 		t.Errorf("unexpected gamma: %f, want %f", decoded.Gamma, m.Gamma)
 	}
 }
+
+func TestEncodeWithMeta_sRGB(t *testing.T) {
+	m := &ImageWithMeta{
+		Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
+		SRGB: &SRGB{
+			RenderingIntent: RenderingIntentPerceptual,
+		},
+	}
+
+	decoded, err := encodeDecodeWithMeta(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if decoded.SRGB == nil {
+		t.Fatal("unexpected nil sRGB")
+	}
+
+	if decoded.SRGB.RenderingIntent != RenderingIntentPerceptual {
+		t.Errorf("unexpected rendering intent: %v, want %v", decoded.SRGB.RenderingIntent, m.SRGB.RenderingIntent)
+	}
+}
