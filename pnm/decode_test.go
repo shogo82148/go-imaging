@@ -3,6 +3,7 @@ package pnm
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/shogo82148/go-imaging/bitmap"
@@ -389,4 +390,13 @@ func TestDecodeConfig(t *testing.T) {
 			t.Errorf("expected height 10, got %d", cfg.Height)
 		}
 	})
+}
+
+func TestUnsupportedFormat(t *testing.T) {
+	input := "P7\n"
+	r := strings.NewReader(input)
+	_, err := Decode(r)
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
 }
