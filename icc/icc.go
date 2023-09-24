@@ -201,6 +201,25 @@ func Decode(r io.Reader) (*Profile, error) {
 	}, nil
 }
 
+// alignWriter is a writer that aligns the data to 4 bytes.
+type alignWriter struct {
+	w   io.Writer
+	n   int64
+	buf [4]byte
+}
+
+func (w *alignWriter) Write(data []byte) (n int, err error) {
+	n, err = w.w.Write(data)
+	w.n += int64(n)
+	return
+}
+
+func (w *alignWriter) Align() error {
+	n := (w.n + 0x03) &^ 0x03
+	_, err := w.Write(w.buf[:n-w.n])
+	return err
+}
+
 func (p *Profile) Encode(w io.Writer) error {
 	// calculate the size of the profile header
 	offset := uint32(128)              // for the profile header
@@ -230,26 +249,25 @@ func (p *Profile) Encode(w io.Writer) error {
 	header.Size = offset
 	header.Magic = ICCMagicNumber
 
-	buf := bytes.NewBuffer(make([]byte, 0, offset))
-	if err := binary.Write(buf, binary.BigEndian, header); err != nil {
+	aw := &alignWriter{w: w}
+	if err := binary.Write(aw, binary.BigEndian, header); err != nil {
 		return err
 	}
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(p.Tags))); err != nil {
+	if err := binary.Write(aw, binary.BigEndian, uint32(len(p.Tags))); err != nil {
 		return err
 	}
-	if err := binary.Write(buf, binary.BigEndian, tagTable); err != nil {
+	if err := binary.Write(aw, binary.BigEndian, tagTable); err != nil {
 		return err
 	}
 	for _, data := range tagContents {
-		buf.Write(data)
-
-		// align to 4 bytes
-		for buf.Len()%4 != 0 {
-			buf.WriteByte(0)
+		if _, err := aw.Write(data); err != nil {
+			return err
+		}
+		if err := aw.Align(); err != nil {
+			return err
 		}
 	}
-	_, err := buf.WriteTo(w)
-	return err
+	return nil
 }
 
 func (p *Profile) Get(tag Tag) TagContent {
