@@ -340,7 +340,7 @@ func decodeConfig(br *bufio.Reader) (config, error) {
 	}
 
 	hi, lo := bits.Mul64(uint64(width), uint64(height))
-	if hi != 0 || lo > 1<<30 {
+	if hi != 0 || lo > math.MaxInt {
 		return config{}, errors.New("pnm: too large image")
 	}
 

@@ -392,11 +392,85 @@ func TestDecodeConfig(t *testing.T) {
 	})
 }
 
-func TestUnsupportedFormat(t *testing.T) {
-	input := "P7\n"
-	r := strings.NewReader(input)
-	_, err := Decode(r)
-	if err == nil {
-		t.Errorf("expected error, got nil")
-	}
+func TestInvalidFormat(t *testing.T) {
+	t.Run("unknown magic number", func(t *testing.T) {
+		input := "P7\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("empty magic number", func(t *testing.T) {
+		input := ""
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("incomplete magic number", func(t *testing.T) {
+		input := "P"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("missing width", func(t *testing.T) {
+		input := "P1\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("parsing width error", func(t *testing.T) {
+		input := "P1\nNotANumber\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("0 width", func(t *testing.T) {
+		input := "P1\n0\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("missing height", func(t *testing.T) {
+		input := "P1\n1\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("parsing height error", func(t *testing.T) {
+		input := "P1\n1\nNotANumber\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
+
+	t.Run("0 height", func(t *testing.T) {
+		input := "P1\n1\n0\n"
+		r := strings.NewReader(input)
+		_, err := Decode(r)
+		if err == nil {
+			t.Errorf("expected error, got nil")
+		}
+	})
 }
