@@ -90,6 +90,7 @@ func DecodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 	if d.gamma != 0 {
 		img.Gamma = float64(d.gamma) / 100000
 	}
+	img.SRGB = d.srgb
 	return img, nil
 }
 
