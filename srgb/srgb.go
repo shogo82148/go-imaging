@@ -54,6 +54,9 @@ func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
 				fg := float64(c.G) / 0xff
 				fb := float64(c.B) / 0xff
 				fa := float64(c.A) / 0xff
+				fr /= fa
+				fg /= fa
+				fb /= fa
 				fr = encodedToLinear(fr)
 				fg = encodedToLinear(fg)
 				fb = encodedToLinear(fb)
@@ -85,6 +88,9 @@ func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 				fg := float64(c.G) / 0xffff
 				fb := float64(c.B) / 0xffff
 				fa := float64(c.A) / 0xffff
+				fr /= fa
+				fg /= fa
+				fb /= fa
 				fr = encodedToLinear(fr)
 				fg = encodedToLinear(fg)
 				fb = encodedToLinear(fb)
@@ -134,19 +140,29 @@ func linearize(img image.Image) *fp16.NRGBAh {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.At(x, y)
 			r, g, b, a := c.RGBA()
-			fr := float64(r) / 0xffff
-			fg := float64(g) / 0xffff
-			fb := float64(b) / 0xffff
-			fa := float64(a) / 0xffff
-			if fa != 0 {
+			if a == 0 {
+				fr := encodedToLinearTable16[r]
+				fg := encodedToLinearTable16[g]
+				fb := encodedToLinearTable16[b]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: 0})
+			} else if a == 0xffff {
+				fr := encodedToLinearTable16[r]
+				fg := encodedToLinearTable16[g]
+				fb := encodedToLinearTable16[b]
+				ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: one})
+			} else {
+				fr := float64(r) / 0xffff
+				fg := float64(g) / 0xffff
+				fb := float64(b) / 0xffff
+				fa := float64(a) / 0xffff
 				fr /= fa
 				fg /= fa
 				fb /= fa
+				fr = encodedToLinear(fr)
+				fg = encodedToLinear(fg)
+				fb = encodedToLinear(fb)
+				ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 			}
-			fr = encodedToLinear(fr)
-			fg = encodedToLinear(fg)
-			fb = encodedToLinear(fb)
-			ret.SetNRGBAh(x, y, fp16color.NewNRGBAh(fr, fg, fb, fa))
 		}
 	})
 	return ret
