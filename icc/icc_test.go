@@ -383,7 +383,22 @@ func TestDecode(t *testing.T) {
 		}
 
 		// overwrite the profile size
-		binary.BigEndian.PutUint32(data, uint32(len(data)+1))
+		binary.BigEndian.PutUint32(data, uint32(iccHeaderSize-1))
+
+		_, err = Decode(bytes.NewReader(data))
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("large size", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the profile size
+		binary.BigEndian.PutUint32(data, uint32(0xffffffff))
 
 		_, err = Decode(bytes.NewReader(data))
 		if err == nil {

@@ -130,6 +130,33 @@ type TagEntry struct {
 	TagContent TagContent
 }
 
+// readN reads n bytes from r.
+func readN(r io.Reader, n int64) ([]byte, error) {
+	if n < 0 {
+		return nil, errors.New("icc: invalid size")
+	}
+	if n == 0 {
+		return []byte{}, nil
+	}
+	if n < 16*1024 {
+		// optimize for small size
+		buf := make([]byte, n)
+		if _, err := io.ReadFull(r, buf); err != nil && err != io.EOF {
+			return nil, err
+		}
+		return buf, nil
+	}
+
+	data, err := io.ReadAll(io.LimitReader(r, n))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) < n {
+		return nil, io.ErrUnexpectedEOF
+	}
+	return data, nil
+}
+
 func Decode(r io.Reader) (*Profile, error) {
 	var header ProfileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
@@ -142,8 +169,8 @@ func Decode(r io.Reader) (*Profile, error) {
 		return nil, errors.New("icc: invalid profile size")
 	}
 
-	data := make([]byte, header.Size-iccHeaderSize)
-	if _, err := io.ReadFull(r, data); err != nil && err != io.EOF {
+	data, err := readN(r, int64(header.Size)-iccHeaderSize)
+	if err != nil {
 		return nil, err
 	}
 	br := bytes.NewReader(data)
