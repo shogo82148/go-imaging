@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"image"
+	"image/color/palette"
 	"io"
 	"os"
 	"testing"
 
+	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/srgb/internal/golden"
 )
 
@@ -119,5 +121,47 @@ func BenchmarkLinearize_NRGBA64(b *testing.B) {
 	input := image.NewNRGBA64(image.Rect(0, 0, 512, 512))
 	for i := 0; i < b.N; i++ {
 		Linearize(input)
+	}
+}
+
+func BenchmarkLinearize_Gray(b *testing.B) {
+	input := image.NewGray(image.Rect(0, 0, 512, 512))
+	for i := 0; i < b.N; i++ {
+		Linearize(input)
+	}
+}
+
+func BenchmarkLinearize_Gray16(b *testing.B) {
+	input := image.NewGray(image.Rect(0, 0, 512, 512))
+	for i := 0; i < b.N; i++ {
+		Linearize(input)
+	}
+}
+
+func BenchmarkLinearize_Alpha(b *testing.B) {
+	input := image.NewAlpha(image.Rect(0, 0, 512, 512))
+	for i := 0; i < b.N; i++ {
+		Linearize(input)
+	}
+}
+
+func BenchmarkLinearize_Alpha16(b *testing.B) {
+	input := image.NewAlpha16(image.Rect(0, 0, 512, 512))
+	for i := 0; i < b.N; i++ {
+		Linearize(input)
+	}
+}
+
+func BenchmarkLinearize_Paletted(b *testing.B) {
+	input := image.NewPaletted(image.Rect(0, 0, 512, 512), palette.Plan9)
+	for i := 0; i < b.N; i++ {
+		Linearize(input)
+	}
+}
+
+func BenchmarkNonLinearize(b *testing.B) {
+	input := fp16.NewNRGBAh(image.Rect(0, 0, 512, 512))
+	for i := 0; i < b.N; i++ {
+		NonLinearize(input)
 	}
 }
