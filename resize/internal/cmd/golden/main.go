@@ -49,7 +49,7 @@ func main() {
 		}
 
 		buf.Reset()
-		out := srgb.Encode(dst)
+		out := srgb.NonLinearize(dst)
 		if err := png.Encode(buf, out); err != nil {
 			log.Println(err)
 		}

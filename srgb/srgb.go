@@ -15,18 +15,18 @@ import (
 	"github.com/shogo82148/go-imaging/internal/parallels"
 )
 
-// Decode decodes an sRGB color encoded image to a linear color image.
-func Decode(img image.Image) *fp16.NRGBAh {
+// Linearize decodes an sRGB color encoded image to a linear color image.
+func Linearize(img image.Image) *fp16.NRGBAh {
 	switch img := img.(type) {
 	case *image.RGBA:
-		return decodeRGBA(img)
+		return linearizeRGBA(img)
 	case *image.RGBA64:
-		return decodeRGBA64(img)
+		return linearizeRGBA64(img)
 	}
-	return decode(img)
+	return linearize(img)
 }
 
-func decodeRGBA(img *image.RGBA) *fp16.NRGBAh {
+func linearizeRGBA(img *image.RGBA) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -50,7 +50,7 @@ func decodeRGBA(img *image.RGBA) *fp16.NRGBAh {
 	return ret
 }
 
-func decodeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
+func linearizeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -74,7 +74,7 @@ func decodeRGBA64(img *image.RGBA64) *fp16.NRGBAh {
 	return ret
 }
 
-func decode(img image.Image) *fp16.NRGBAh {
+func linearize(img image.Image) *fp16.NRGBAh {
 	bounds := img.Bounds()
 	ret := fp16.NewNRGBAh(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
@@ -99,8 +99,8 @@ func decode(img image.Image) *fp16.NRGBAh {
 	return ret
 }
 
-// Encode encodes a linear color image to an sRGB color encoded image.
-func Encode(img *fp16.NRGBAh) *image.NRGBA64 {
+// NonLinearize encodes a linear color image to an sRGB color encoded image.
+func NonLinearize(img *fp16.NRGBAh) *image.NRGBA64 {
 	bounds := img.Bounds()
 	ret := image.NewNRGBA64(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
