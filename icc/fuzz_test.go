@@ -1,6 +1,8 @@
 package icc
 
 import (
+	"bytes"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -8,17 +10,18 @@ import (
 
 func FuzzDecode(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-		p0, err := Decode(data)
+		p0, err := Decode(bytes.NewReader(data))
 		if err != nil {
 			return
 		}
 
-		encoded0, err := Encode(p0)
-		if err != nil {
+		buf := new(bytes.Buffer)
+		if err := p0.Encode(buf); err != nil {
 			t.Fatalf("failed to encode: %v", err)
 		}
+		encoded0 := slices.Clone(buf.Bytes())
 
-		p1, err := Decode(encoded0)
+		p1, err := Decode(bytes.NewReader(encoded0))
 		if err != nil {
 			t.Fatalf("failed to decode: %v", err)
 		}
@@ -31,10 +34,12 @@ func FuzzDecode(f *testing.F) {
 			t.Errorf("mismatch (-want +got):\n%s", diff)
 		}
 
-		encoded1, err := Encode(p1)
-		if err != nil {
+		buf.Reset()
+		if err := p1.Encode(buf); err != nil {
 			t.Fatalf("failed to encode: %v", err)
 		}
+		encoded1 := slices.Clone(buf.Bytes())
+
 		if diff := cmp.Diff(encoded0, encoded1); diff != "" {
 			t.Errorf("mismatch (-want +got):\n%s", diff)
 		}

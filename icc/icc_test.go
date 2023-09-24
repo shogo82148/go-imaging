@@ -1,9 +1,11 @@
 package icc
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -27,12 +29,13 @@ func TestVersion(t *testing.T) {
 }
 
 func Test_D65_XYZ(t *testing.T) {
-	data, err := os.ReadFile("testdata/D65_XYZ.icc")
+	f, err := os.Open("testdata/D65_XYZ.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,12 +76,13 @@ func Test_D65_XYZ(t *testing.T) {
 }
 
 func Test_ILFORD_CANpro(t *testing.T) {
-	data, err := os.ReadFile("testdata/ILFORD_CANpro-4000_GPGFG_ProPlatin.icc")
+	f, err := os.Open("testdata/ILFORD_CANpro-4000_GPGFG_ProPlatin.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,12 +99,13 @@ func Test_ILFORD_CANpro(t *testing.T) {
 }
 
 func Test_iPhone12Pro(t *testing.T) {
-	data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+	f, err := os.Open("testdata/iPhone12Pro.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,12 +146,13 @@ func Test_iPhone12Pro(t *testing.T) {
 }
 
 func Test_Probev_ICCv2(t *testing.T) {
-	data, err := os.ReadFile("testdata/Probev1_ICCv2.icc")
+	f, err := os.Open("testdata/Probev1_ICCv2.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,12 +169,13 @@ func Test_Probev_ICCv2(t *testing.T) {
 }
 
 func Test_Probev_ICCv4(t *testing.T) {
-	data, err := os.ReadFile("testdata/Probev1_ICCv4.icc")
+	f, err := os.Open("testdata/Probev1_ICCv4.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,12 +192,13 @@ func Test_Probev_ICCv4(t *testing.T) {
 }
 
 func Test_sRGB_ICC_v4_Appearance(t *testing.T) {
-	data, err := os.ReadFile("testdata/sRGB_ICC_v4_Appearance.icc")
+	f, err := os.Open("testdata/sRGB_ICC_v4_Appearance.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,12 +215,13 @@ func Test_sRGB_ICC_v4_Appearance(t *testing.T) {
 }
 
 func Test_sRGB_IEC61966(t *testing.T) {
-	data, err := os.ReadFile("testdata/sRGB_IEC61966-2-1_black_scaled.icc")
+	f, err := os.Open("testdata/sRGB_IEC61966-2-1_black_scaled.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,12 +262,13 @@ func Test_sRGB_IEC61966(t *testing.T) {
 }
 
 func Test_USWebCoatedSWOP(t *testing.T) {
-	data, err := os.ReadFile("testdata/USWebCoatedSWOP.icc")
+	f, err := os.Open("testdata/USWebCoatedSWOP.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	profile, err := Decode(data)
+	profile, err := Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +370,7 @@ func TestTagContentParametricCurve(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	t.Run("invalid magic", func(t *testing.T) {
-		_, err := Decode(make([]byte, 128))
+		_, err := Decode(bytes.NewReader(make([]byte, 128)))
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -373,9 +383,24 @@ func TestDecode(t *testing.T) {
 		}
 
 		// overwrite the profile size
-		binary.BigEndian.PutUint32(data, uint32(len(data)+1))
+		binary.BigEndian.PutUint32(data, uint32(iccHeaderSize-1))
 
-		_, err = Decode(data)
+		_, err = Decode(bytes.NewReader(data))
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+	})
+
+	t.Run("large size", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// overwrite the profile size
+		binary.BigEndian.PutUint32(data, uint32(0xffffffff))
+
+		_, err = Decode(bytes.NewReader(data))
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -390,7 +415,7 @@ func TestDecode(t *testing.T) {
 		// overwrite the tag size
 		binary.BigEndian.PutUint32(data[0x88:], uint32(len(data)-0x30+1))
 
-		_, err = Decode(data)
+		_, err = Decode(bytes.NewReader(data))
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -405,7 +430,7 @@ func TestDecode(t *testing.T) {
 		// overwrite the tag size
 		binary.BigEndian.PutUint32(data[0x88:], uint32(0x100000000-0x30))
 
-		_, err = Decode(data)
+		_, err = Decode(bytes.NewReader(data))
 		if err == nil {
 			t.Fatal("expected an error")
 		}
@@ -418,17 +443,18 @@ func TestEncode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p0, err := Decode(data)
+	p0, err := Decode(bytes.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	encoded0, err := Encode(p0)
-	if err != nil {
+	buf := new(bytes.Buffer)
+	if err := p0.Encode(buf); err != nil {
 		t.Fatalf("failed to encode: %v", err)
 	}
+	encoded0 := slices.Clone(buf.Bytes())
 
-	p1, err := Decode(encoded0)
+	p1, err := Decode(bytes.NewReader(encoded0))
 	if err != nil {
 		t.Fatalf("failed to decode: %v", err)
 	}
@@ -441,10 +467,12 @@ func TestEncode(t *testing.T) {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 
-	encoded1, err := Encode(p1)
-	if err != nil {
+	buf.Reset()
+	if err := p1.Encode(buf); err != nil {
 		t.Fatalf("failed to encode: %v", err)
 	}
+	encoded1 := slices.Clone(buf.Bytes())
+
 	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}

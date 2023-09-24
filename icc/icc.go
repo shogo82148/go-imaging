@@ -6,12 +6,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"slices"
 	"strconv"
 	"time"
 )
 
+const iccHeaderSize = 128
 const ICCMagicNumber Signature = 0x61637370 // 'acsp'
 
 type Signature uint32
@@ -128,8 +130,34 @@ type TagEntry struct {
 	TagContent TagContent
 }
 
-func Decode(data []byte) (*Profile, error) {
-	r := bytes.NewReader(data)
+// readN reads n bytes from r.
+func readN(r io.Reader, n int64) ([]byte, error) {
+	if n < 0 {
+		return nil, errors.New("icc: invalid size")
+	}
+	if n == 0 {
+		return []byte{}, nil
+	}
+	if n < 16*1024 {
+		// optimize for small size
+		buf := make([]byte, n)
+		if _, err := io.ReadFull(r, buf); err != nil && err != io.EOF {
+			return nil, err
+		}
+		return buf, nil
+	}
+
+	data, err := io.ReadAll(io.LimitReader(r, n))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) < n {
+		return nil, io.ErrUnexpectedEOF
+	}
+	return data, nil
+}
+
+func Decode(r io.Reader) (*Profile, error) {
 	var header ProfileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
 		return nil, err
@@ -137,16 +165,22 @@ func Decode(data []byte) (*Profile, error) {
 	if header.Magic != ICCMagicNumber {
 		return nil, errors.New("icc: invalid magic number")
 	}
-	if header.Size > uint32(len(data)) {
+	if header.Size < iccHeaderSize {
 		return nil, errors.New("icc: invalid profile size")
 	}
 
+	data, err := readN(r, int64(header.Size)-iccHeaderSize)
+	if err != nil {
+		return nil, err
+	}
+	br := bytes.NewReader(data)
+
 	var tagCount uint32
-	if err := binary.Read(r, binary.BigEndian, &tagCount); err != nil {
+	if err := binary.Read(br, binary.BigEndian, &tagCount); err != nil {
 		return nil, err
 	}
 	table := make([]tagTable, tagCount)
-	if err := binary.Read(r, binary.BigEndian, &table); err != nil {
+	if err := binary.Read(br, binary.BigEndian, &table); err != nil {
 		return nil, err
 	}
 
@@ -160,7 +194,7 @@ func Decode(data []byte) (*Profile, error) {
 			return nil, errors.New("icc: invalid tag table")
 		}
 
-		tagData := data[t.Offset : t.Offset+t.Size]
+		tagData := data[t.Offset-iccHeaderSize : t.Offset+t.Size-iccHeaderSize]
 		tagType := TagType(binary.BigEndian.Uint32(tagData))
 
 		var content TagContent
@@ -194,19 +228,38 @@ func Decode(data []byte) (*Profile, error) {
 	}, nil
 }
 
-func Encode(profile *Profile) ([]byte, error) {
-	// calculate the size of the profile header
-	offset := uint32(128)                    // for the profile header
-	offset += 4                              // for the tag count
-	offset += uint32(len(profile.Tags) * 12) // for the tag table
+// alignWriter is a writer that aligns the data to 4 bytes.
+type alignWriter struct {
+	w   io.Writer
+	n   int64
+	buf [4]byte
+}
 
-	tagTable := make([]tagTable, len(profile.Tags))
-	tagContents := make([][]byte, len(profile.Tags))
-	for i, tag := range profile.Tags {
+func (w *alignWriter) Write(data []byte) (n int, err error) {
+	n, err = w.w.Write(data)
+	w.n += int64(n)
+	return
+}
+
+func (w *alignWriter) Align() error {
+	n := (w.n + 0x03) &^ 0x03
+	_, err := w.Write(w.buf[:n-w.n])
+	return err
+}
+
+func (p *Profile) Encode(w io.Writer) error {
+	// calculate the size of the profile header
+	offset := uint32(128)              // for the profile header
+	offset += 4                        // for the tag count
+	offset += uint32(len(p.Tags) * 12) // for the tag table
+
+	tagTable := make([]tagTable, len(p.Tags))
+	tagContents := make([][]byte, len(p.Tags))
+	for i, tag := range p.Tags {
 		// encode the tag content
 		data, err := tag.TagContent.MarshalBinary()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		tagContents[i] = data
 
@@ -219,29 +272,29 @@ func Encode(profile *Profile) ([]byte, error) {
 		offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
 	}
 
-	header := profile.ProfileHeader
+	header := p.ProfileHeader
 	header.Size = offset
 	header.Magic = ICCMagicNumber
 
-	buf := bytes.NewBuffer(make([]byte, 0, offset))
-	if err := binary.Write(buf, binary.BigEndian, header); err != nil {
-		return nil, err
+	aw := &alignWriter{w: w}
+	if err := binary.Write(aw, binary.BigEndian, header); err != nil {
+		return err
 	}
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(profile.Tags))); err != nil {
-		return nil, err
+	if err := binary.Write(aw, binary.BigEndian, uint32(len(p.Tags))); err != nil {
+		return err
 	}
-	if err := binary.Write(buf, binary.BigEndian, tagTable); err != nil {
-		return nil, err
+	if err := binary.Write(aw, binary.BigEndian, tagTable); err != nil {
+		return err
 	}
 	for _, data := range tagContents {
-		buf.Write(data)
-
-		// align to 4 bytes
-		for buf.Len()%4 != 0 {
-			buf.WriteByte(0)
+		if _, err := aw.Write(data); err != nil {
+			return err
+		}
+		if err := aw.Align(); err != nil {
+			return err
 		}
 	}
-	return buf.Bytes(), nil
+	return nil
 }
 
 func (p *Profile) Get(tag Tag) TagContent {
