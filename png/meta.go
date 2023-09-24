@@ -1,6 +1,8 @@
 package png
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"hash/crc32"
 	"image"
@@ -185,6 +187,9 @@ func (enc *Encoder) EncodeWithMeta(w io.Writer, m *ImageWithMeta) error {
 	if m.SRGB != nil {
 		e.writeSRGB(m.SRGB)
 	}
+	if m.ICCProfile != nil {
+		e.writeICCP(m.ICCProfileName, m.ICCProfile)
+	}
 	if pal != nil {
 		e.writePLTEAndTRNS(pal)
 	}
@@ -202,4 +207,72 @@ func (e *encoder) writeGAMA(gamma float64) {
 func (e *encoder) writeSRGB(srgb *SRGB) {
 	e.tmp[0] = byte(srgb.RenderingIntent)
 	e.writeChunk(e.tmp[:1], "sRGB")
+}
+
+// iccProfileLatin1ToUTF8 converts a string from Latin-1 to UTF-8.
+// Leading, trailing, and consecutive spaces are not permitted.
+func iccProfileLatin1ToUTF8(s string) (string, bool) {
+	if len(s) == 0 {
+		return "", true
+	}
+	if s[0] == ' ' || s[len(s)-1] == ' ' {
+		return "", false
+	}
+
+	runes := make([]rune, 0, len(s))
+	sp := false
+	for _, ch := range []byte(s) {
+		if (ch < 32 || ch > 126) && (ch < 161 || ch > 255) {
+			return "", false
+		}
+		if sp && ch == ' ' {
+			return "", false
+		}
+		sp = ch == ' '
+		runes = append(runes, rune(ch))
+	}
+	return string(runes), true
+}
+
+func iccProfileUTF8ToLatin1(s string) string {
+	buf := make([]byte, 0, len(s))
+	var sp bool
+	for _, ch := range s {
+		if (ch < 32 || ch > 126) && (ch < 161 || ch > 255) {
+			ch = '.'
+		}
+		if sp && ch == ' ' {
+			continue
+		}
+		sp = ch == ' '
+		buf = append(buf, byte(ch))
+	}
+	return string(bytes.TrimSpace(buf))
+}
+
+func (e *encoder) writeICCP(name string, profile *icc.Profile) {
+	if e.err != nil {
+		return
+	}
+
+	buf := bytes.NewBuffer(e.tmp[:0])
+	buf.WriteString(iccProfileUTF8ToLatin1(name))
+	buf.WriteByte(0x00) // null terminator
+	buf.WriteByte(0x00) // compression method: zlib
+
+	// Compress the ICC profile
+	w, err := zlib.NewWriterLevel(buf, zlib.BestCompression)
+	if err != nil {
+		e.err = err
+		return
+	}
+	e.err = profile.Encode(w)
+	if e.err != nil {
+		return
+	}
+	e.err = w.Close()
+	if e.err != nil {
+		return
+	}
+	e.writeChunk(buf.Bytes(), "iCCP")
 }

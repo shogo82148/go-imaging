@@ -915,7 +915,12 @@ func (d *decoder) parseICCP(length uint32) error {
 	if len(name) == 0 || name[len(name)-1] != '\x00' {
 		return FormatError("bad iCCP profile name")
 	}
-	d.profileName = name[:len(name)-1]
+	name = name[:len(name)-1]
+	name, ok := iccProfileLatin1ToUTF8(name)
+	if !ok {
+		return FormatError("bad iCCP profile name")
+	}
+	d.profileName = name
 
 	// Read the compression method.
 	method, err := br.ReadByte()
