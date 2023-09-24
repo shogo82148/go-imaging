@@ -17,6 +17,49 @@ type ImageWithMeta struct {
 	// Gamma is the gamma value of the image.
 	// If Gamma is 0, the image has no gamma information.
 	Gamma float64
+
+	// SRGB is the sRGB information of the image.
+	// If SRGB is nil, the image has no sRGB information.
+	SRGB *SRGB
+}
+
+type SRGB struct {
+	RenderingIntent RenderingIntent
+}
+
+type RenderingIntent int
+
+const (
+	// RenderingIntentPerceptual is for images preferring good adaptation
+	// to the output device gamut at the expense of colorimetric accuracy, such as photographs.
+	RenderingIntentPerceptual RenderingIntent = 0
+
+	// RenderingIntentRelative is for images requiring color
+	// appearance matching (relative to the output device white point), such as logos.
+	RenderingIntentRelative RenderingIntent = 1
+
+	// RenderingIntentSaturation is for images preferring preservation
+	// of saturation at the expense of hue and lightness, such as charts and graphs.
+	RenderingIntentSaturation RenderingIntent = 2
+
+	// RenderingIntentAbsolute is for images requiring preservation of absolute colorimetry,
+	// such as previews of images destined for a different output device (proofs).
+	RenderingIntentAbsolute RenderingIntent = 3
+)
+
+func (ri RenderingIntent) String() string {
+	switch ri {
+	case RenderingIntentPerceptual:
+		return "Perceptual"
+	case RenderingIntentRelative:
+		return "Relative"
+	case RenderingIntentSaturation:
+		return "Saturation"
+	case RenderingIntentAbsolute:
+		return "Absolute"
+	default:
+		return "Unknown RenderingIntent: " + strconv.Itoa(int(ri))
+	}
 }
 
 // DecodeWithMeta reads a PNG image from r and returns it as an image.Image.
@@ -125,6 +168,9 @@ func (enc *Encoder) EncodeWithMeta(w io.Writer, m *ImageWithMeta) error {
 	if m.Gamma != 0 {
 		e.writeGAMA(m.Gamma)
 	}
+	if m.SRGB != nil {
+		e.writeSRGB(m.SRGB)
+	}
 	if pal != nil {
 		e.writePLTEAndTRNS(pal)
 	}
@@ -137,4 +183,9 @@ func (e *encoder) writeGAMA(gamma float64) {
 	g := uint32(math.RoundToEven(gamma * 100000))
 	binary.BigEndian.PutUint32(e.tmp[:4], g)
 	e.writeChunk(e.tmp[:4], "gAMA")
+}
+
+func (e *encoder) writeSRGB(srgb *SRGB) {
+	e.tmp[0] = byte(srgb.RenderingIntent)
+	e.writeChunk(e.tmp[:1], "sRGB")
 }
