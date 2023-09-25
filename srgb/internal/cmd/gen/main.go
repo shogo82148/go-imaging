@@ -23,6 +23,7 @@ import (
 
 `)
 
+	// 8-bit sRGB encoded value to binary16 float linear value.
 	fmt.Fprint(buf, `// encodedToLinearTable converts 8-bit sRGB encoded value to binary16 float linear value.
 	var encodedToLinearTable = [256]float16.Float16{
 	`)
@@ -33,6 +34,7 @@ import (
 	}
 	fmt.Fprint(buf, "}\n\n")
 
+	// binary16 float linear value to 8-bit sRGB encoded value.
 	fmt.Fprint(buf, `// encodedToLinearTable16 converts 16-bit sRGB encoded value to binary16 float linear value.
 	var encodedToLinearTable16 = [65536]float16.Float16{
 	`)
@@ -43,6 +45,17 @@ import (
 	}
 	fmt.Fprint(buf, "}\n\n")
 
+	fmt.Fprint(buf, `// linearToEncodedTable8 converts binary16 float linear value to 16-bit sRGB encoded value.
+	var linearToEncodedTable = [65536]uint8{
+	`)
+	for i := 0; i < 0x10000; i++ {
+		v := float16.FromBits(uint16(i)).Float64()
+		w := linearToEncoded(max(0, min(1, v)))
+		fmt.Fprintf(buf, "0x%02x, // %.3x\n", uint16(math.RoundToEven(w*0xff)), v)
+	}
+	fmt.Fprint(buf, "}\n\n")
+
+	// 16-bit sRGB encoded value to binary16 float linear value.
 	fmt.Fprint(buf, `// linearToEncodedTable16 converts binary16 float linear value to 16-bit sRGB encoded value.
 	var linearToEncodedTable16 = [65536]uint16{
 	`)

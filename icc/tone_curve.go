@@ -43,7 +43,31 @@ func (p *Profile) DecodeTone(img image.Image) *fp16.NRGBAh {
 	return ret
 }
 
-func (p *Profile) EncodeTone(img *fp16.NRGBAh) *image.NRGBA64 {
+func (p *Profile) EncodeTone(img *fp16.NRGBAh) *image.NRGBA {
+	cr := p.Get(TagRedTRC).(Curve)
+	cg := p.Get(TagGreenTRC).(Curve)
+	cb := p.Get(TagBlueTRC).(Curve)
+
+	bounds := img.Bounds()
+	ret := image.NewNRGBA(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			rgba := img.NRGBAhAt(x, y)
+			fr := cr.EncodeTone(rgba.B.Float64())
+			fg := cg.EncodeTone(rgba.G.Float64())
+			fb := cb.EncodeTone(rgba.B.Float64())
+			ret.SetNRGBA(x, y, color.NRGBA{
+				R: uint8(fr * 0xff),
+				G: uint8(fg * 0xff),
+				B: uint8(fb * 0xff),
+				A: uint8(rgba.A.Float64() * 0xff),
+			})
+		}
+	})
+	return ret
+}
+
+func (p *Profile) EncodeTone16(img *fp16.NRGBAh) *image.NRGBA64 {
 	cr := p.Get(TagRedTRC).(Curve)
 	cg := p.Get(TagGreenTRC).(Curve)
 	cb := p.Get(TagBlueTRC).(Curve)

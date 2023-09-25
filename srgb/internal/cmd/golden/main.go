@@ -60,7 +60,7 @@ func saveGolden(path string, img *fp16.NRGBAh) {
 
 func generateNonLinearizeGolden(dir string) {
 	input := golden.NewNRGBAh()
-	output := srgb.EncodeTone(input)
+	output := srgb.EncodeTone64(input)
 
 	// save the output as the raw data.
 	f, err := os.OpenFile(filepath.Join(dir, "non-linearize.golden.gz"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)

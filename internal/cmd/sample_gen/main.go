@@ -77,7 +77,7 @@ func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NR
 	f(dst, src)
 
 	buf := new(bytes.Buffer)
-	out := srgb.EncodeTone(dst)
+	out := srgb.EncodeTone64(dst)
 	if err := png.Encode(buf, out); err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func resize0_5x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.
 	f(dst, src)
 
 	buf := new(bytes.Buffer)
-	out := srgb.EncodeTone(dst)
+	out := srgb.EncodeTone64(dst)
 	if err := png.Encode(buf, out); err != nil {
 		return err
 	}

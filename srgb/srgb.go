@@ -259,8 +259,29 @@ func decodeTone(img image.Image) *fp16.NRGBAh {
 	return ret
 }
 
-// EncodeTone encodes a linear color image to an sRGB color encoded image.
-func EncodeTone(img *fp16.NRGBAh) *image.NRGBA64 {
+// EncodeTone encodes a linear color image to an 8bit depth sRGB color encoded image.
+func EncodeTone(img *fp16.NRGBAh) *image.NRGBA {
+	bounds := img.Bounds()
+	ret := image.NewNRGBA(bounds)
+	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			rgba := img.NRGBAhAt(x, y)
+			fa := max(0, min(1, rgba.A.Float64())) // clamp
+			a := byte(math.RoundToEven(fa * 0xff))
+			ret.SetNRGBA(x, y, color.NRGBA{
+				R: linearToEncodedTable[rgba.R],
+				G: linearToEncodedTable[rgba.G],
+				B: linearToEncodedTable[rgba.B],
+				A: a,
+			})
+		}
+	})
+
+	return ret
+}
+
+// EncodeTone64 encodes a linear color image to a 16bit depth sRGB color encoded image.
+func EncodeTone64(img *fp16.NRGBAh) *image.NRGBA64 {
 	bounds := img.Bounds()
 	ret := image.NewNRGBA64(bounds)
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
