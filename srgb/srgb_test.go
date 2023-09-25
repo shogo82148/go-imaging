@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"image"
+	"image/color"
 	"image/color/palette"
-	"image/jpeg"
+	"image/png"
 	"io"
 	"os"
 	"testing"
@@ -97,22 +98,47 @@ func TestEncodeTone(t *testing.T) {
 	}
 }
 
-func TestProfile_Linearize(t *testing.T) {
-	img, err := os.ReadFile("testdata/senkakuwan.jpg")
+func readPNG(filename string) (image.Image, error) {
+	f, err := os.Open(filename)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-	m, err := jpeg.Decode(bytes.NewReader(img))
+	defer f.Close()
+	return png.Decode(f)
+}
+
+func compareImage(t *testing.T, got, want image.Image) {
+	if got.Bounds() != want.Bounds() {
+		t.Errorf("bounds mismatch: got %v, want %v", got.Bounds(), want.Bounds())
+		return
+	}
+
+	for y := got.Bounds().Min.Y; y < got.Bounds().Max.Y; y++ {
+		for x := got.Bounds().Min.X; x < got.Bounds().Max.X; x++ {
+			c0 := color.NRGBA64Model.Convert(got.At(x, y)).(color.NRGBA64)
+			c1 := color.NRGBA64Model.Convert(want.At(x, y)).(color.NRGBA64)
+			if c0 != c1 {
+				t.Errorf("color mismatch at (%d, %d): got %v, want %v", x, y, c0, c1)
+				return
+			}
+		}
+	}
+}
+
+func TestProfile_Linearize(t *testing.T) {
+	input, err := readPNG("../testdata/senkakuwan.png")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := os.OpenFile("senkakuwan-linearized.jpg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	want, err := readPNG("./testdata/senkakuwan.golden.png")
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := DecodeTone(m)
-	jpeg.Encode(f, out, nil)
+
+	got := DecodeTone(input)
+
+	compareImage(t, got, want)
 }
 
 func BenchmarkDecodeTone_RGBA(b *testing.B) {
