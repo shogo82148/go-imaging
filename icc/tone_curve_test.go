@@ -3,7 +3,10 @@ package icc
 import (
 	"bytes"
 	"encoding/binary"
-	"image/jpeg"
+	"image"
+	"image/color"
+	"image/png"
+	"log"
 	"math"
 	"os"
 	"slices"
@@ -12,31 +15,61 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestProfile_Linearize(t *testing.T) {
-	img, err := os.ReadFile("testdata/senkakuwan.jpg")
+func readPNG(filename string) (image.Image, error) {
+	f, err := os.Open(filename)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-	m, err := jpeg.Decode(bytes.NewReader(img))
+	defer f.Close()
+	return png.Decode(f)
+}
+
+func decodeProfile(filename string) (*Profile, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	return Decode(f)
+}
+
+func compareImage(t *testing.T, got, want image.Image) {
+	if got.Bounds() != want.Bounds() {
+		t.Errorf("bounds mismatch: got %v, want %v", got.Bounds(), want.Bounds())
+		return
+	}
+
+	for y := got.Bounds().Min.Y; y < got.Bounds().Max.Y; y++ {
+		for x := got.Bounds().Min.X; x < got.Bounds().Max.X; x++ {
+			c0 := color.NRGBA64Model.Convert(got.At(x, y)).(color.NRGBA64)
+			c1 := color.NRGBA64Model.Convert(want.At(x, y)).(color.NRGBA64)
+			if c0 != c1 {
+				t.Errorf("color mismatch at (%d, %d): got %v, want %v", x, y, c0, c1)
+				return
+			}
+		}
+	}
+}
+
+func TestProfile_DecodeTone(t *testing.T) {
+	input, err := readPNG("../testdata/senkakuwan.png")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	profile, err := os.ReadFile("testdata/iPhone12Pro.icc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	p, err := Decode(bytes.NewReader(profile))
+	want, err := readPNG("./testdata/senkakuwan.golden.png")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := os.OpenFile("senkakuwan-linearized.jpg", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	profile, err := decodeProfile("testdata/iPhone12Pro.icc")
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := p.DecodeTone(m)
-	jpeg.Encode(f, out, nil)
+	got := profile.DecodeTone(input)
+
+	compareImage(t, got, want)
 }
 
 func TestTagContentParametricCurve(t *testing.T) {
