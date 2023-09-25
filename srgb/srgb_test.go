@@ -73,7 +73,7 @@ func TestDecodeTone(t *testing.T) {
 
 func TestEncodeTone(t *testing.T) {
 	input := golden.NewNRGBAh()
-	output := EncodeTone(input)
+	output := EncodeTone64(input)
 
 	f, err := os.Open("testdata/non-linearize.golden.gz")
 	if err != nil {
@@ -207,6 +207,6 @@ func BenchmarkDecodeTone_Paletted(b *testing.B) {
 func BenchmarkEncodeTone(b *testing.B) {
 	input := fp16.NewNRGBAh(image.Rect(0, 0, 512, 512))
 	for i := 0; i < b.N; i++ {
-		EncodeTone(input)
+		EncodeTone64(input)
 	}
 }

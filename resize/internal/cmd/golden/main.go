@@ -49,7 +49,7 @@ func main() {
 		}
 
 		buf.Reset()
-		out := srgb.EncodeTone(dst)
+		out := srgb.EncodeTone64(dst)
 		if err := png.Encode(buf, out); err != nil {
 			log.Println(err)
 		}
