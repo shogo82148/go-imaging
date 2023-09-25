@@ -72,12 +72,12 @@ func resize2x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.NR
 	if err != nil {
 		return err
 	}
-	src := srgb.Linearize(orig)
+	src := srgb.DecodeTone(orig)
 	dst := fp16.NewNRGBAh(image.Rect(0, 0, orig.Bounds().Dx()*2, orig.Bounds().Dy()*2))
 	f(dst, src)
 
 	buf := new(bytes.Buffer)
-	out := srgb.NonLinearize(dst)
+	out := srgb.EncodeTone(dst)
 	if err := png.Encode(buf, out); err != nil {
 		return err
 	}
@@ -89,12 +89,12 @@ func resize0_5x(filename string, img []byte, f func(dst *fp16.NRGBAh, src *fp16.
 	if err != nil {
 		return err
 	}
-	src := srgb.Linearize(orig)
+	src := srgb.DecodeTone(orig)
 	dst := fp16.NewNRGBAh(image.Rect(0, 0, orig.Bounds().Dx()/2, orig.Bounds().Dy()/2))
 	f(dst, src)
 
 	buf := new(bytes.Buffer)
-	out := srgb.NonLinearize(dst)
+	out := srgb.EncodeTone(dst)
 	if err := png.Encode(buf, out); err != nil {
 		return err
 	}
