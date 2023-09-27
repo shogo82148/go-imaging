@@ -324,7 +324,7 @@ type ProfileHeader struct {
 	RenderingIntent        uint32
 	XYZ                    XYZNumber
 	ProfileCreator         uint32
-	ProfileID              [2]uint64
+	ProfileID              [16]uint8
 	SpectralPCS            uint32
 	SpectralPCSRange       [6]byte
 	BiSpectralPCSRange     [6]byte

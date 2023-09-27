@@ -3,10 +3,13 @@ package jpeg
 import (
 	"image"
 	"io"
+
+	"github.com/shogo82148/go-imaging/icc"
 )
 
 type ImageWithMeta struct {
 	image.Image
+	ICCProfile *icc.Profile
 }
 
 func DecodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
@@ -109,6 +112,8 @@ func (d *decoder) decodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 			err = d.processDRI(n)
 		case app0Marker:
 			err = d.processApp0Marker(n)
+		case app2Marker:
+			err = d.processApp2Marker(n)
 		case app14Marker:
 			err = d.processApp14Marker(n)
 		default:
@@ -150,5 +155,58 @@ func (d *decoder) decodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 	if img == nil {
 		return nil, FormatError("missing SOS marker")
 	}
-	return &ImageWithMeta{Image: img}, nil
+
+	var iccProfile *icc.Profile
+	if d.iccProfileLen > 0 {
+		r := &multiBlockReader{blocks: d.iccProfile[:]}
+		iccProfile, err = icc.Decode(r)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &ImageWithMeta{
+		Image:      img,
+		ICCProfile: iccProfile,
+	}, nil
+}
+
+func (d *decoder) processApp2Marker(n int) error {
+	l := len("ICC_PROFILE") + 1 + 2 // +1 for the null terminator, +2 for sub-block index and total sub-blocks
+	if n < l {
+		return d.ignore(n)
+	}
+
+	if err := d.readFull(d.tmp[:l]); err != nil {
+		return err
+	}
+	if string(d.tmp[:l-2]) != "ICC_PROFILE\x00" {
+		return d.ignore(n - l)
+	}
+	buf := make([]byte, n-l)
+	if err := d.readFull(buf); err != nil {
+		return err
+	}
+	idx := int(d.tmp[l-2])
+	d.iccProfile[idx] = buf
+	d.iccProfileLen += len(buf)
+	return nil
+}
+
+type multiBlockReader struct {
+	blocks [][]byte
+	idx    int // current block index
+	off    int // current offset in the block
+}
+
+func (r *multiBlockReader) Read(p []byte) (n int, err error) {
+	if r.idx >= len(r.blocks) {
+		return 0, io.EOF
+	}
+	n = copy(p, r.blocks[r.idx][r.off:])
+	r.off += n
+	if r.off >= len(r.blocks[r.idx]) {
+		r.idx++
+		r.off = 0
+	}
+	return n, nil
 }

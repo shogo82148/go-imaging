@@ -62,6 +62,7 @@ const (
 	// but in practice, their use is described at
 	// https://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html
 	app0Marker  = 0xe0
+	app2Marker  = 0xe2
 	app14Marker = 0xee
 	app15Marker = 0xef
 )
@@ -146,6 +147,10 @@ type decoder struct {
 	huff       [maxTc + 1][maxTh + 1]huffman
 	quant      [maxTq + 1]block // Quantization tables, in zig-zag order.
 	tmp        [2 * blockSize]byte
+
+	// metadata
+	iccProfile    [256][]byte
+	iccProfileLen int // total length of iccProfile
 }
 
 // fill fills up the d.bytes.buf buffer from the underlying io.Reader. It

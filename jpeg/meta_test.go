@@ -10,7 +10,14 @@ func TestDecodeWithMeta(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = img // TODO: test me
+	if img.ICCProfile == nil {
+		t.Fatal("ICCProfile is nil")
+	}
+
+	profileID := [16]uint8{0xec, 0xfd, 0xa3, 0x8e, 0x38, 0x85, 0x47, 0xc3, 0x6d, 0xb4, 0xbd, 0x4f, 0x7a, 0xda, 0x18, 0x2f}
+	if img.ICCProfile.ProfileID != profileID {
+		t.Fatalf("ProfileID is %#v, want %#v", img.ICCProfile.ProfileID, profileID)
+	}
 }
 
 func decodeFileWithMeta(filename string) (*ImageWithMeta, error) {
