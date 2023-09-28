@@ -9,10 +9,7 @@ import (
 	"log"
 	"math"
 	"os"
-	"slices"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func readPNG(filename string) (image.Image, error) {
@@ -223,45 +220,4 @@ func TestDecode(t *testing.T) {
 			t.Fatal("expected an error")
 		}
 	})
-}
-
-func TestEncode(t *testing.T) {
-	data, err := os.ReadFile("testdata/iPhone12Pro.icc")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p0, err := Decode(bytes.NewReader(data))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := p0.Encode(buf); err != nil {
-		t.Fatalf("failed to encode: %v", err)
-	}
-	encoded0 := slices.Clone(buf.Bytes())
-
-	p1, err := Decode(bytes.NewReader(encoded0))
-	if err != nil {
-		t.Fatalf("failed to decode: %v", err)
-	}
-
-	// ignore differences in the profile size
-	p0.Size = 0
-	p1.Size = 0
-
-	if diff := cmp.Diff(p0, p1); diff != "" {
-		t.Errorf("mismatch (-want +got):\n%s", diff)
-	}
-
-	buf.Reset()
-	if err := p1.Encode(buf); err != nil {
-		t.Fatalf("failed to encode: %v", err)
-	}
-	encoded1 := slices.Clone(buf.Bytes())
-
-	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
-		t.Errorf("mismatch (-want +got):\n%s", diff)
-	}
 }

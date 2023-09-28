@@ -1,9 +1,13 @@
 package icc
 
 import (
+	"bytes"
 	"math"
 	"os"
+	"slices"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func roughEqual(a, b float64) bool {
@@ -137,6 +141,12 @@ func Test_iPhone12Pro(t *testing.T) {
 				t.Errorf("decode: got %v, want %v", got, want)
 			}
 		}
+	}
+
+	// profile id
+	profileID := [16]byte{0xec, 0xfd, 0xa3, 0x8e, 0x38, 0x85, 0x47, 0xc3, 0x6d, 0xb4, 0xbd, 0x4f, 0x7a, 0xda, 0x18, 0x2f}
+	if profile.ProfileID != profileID {
+		t.Errorf("unexpected profile id: want %016x, got %016x", profileID, profile.ProfileID)
 	}
 }
 
@@ -276,5 +286,48 @@ func Test_USWebCoatedSWOP(t *testing.T) {
 	// check the color space
 	if got, want := profile.ColorSpace, ColorSpaceCMYK; got != want {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestEncode(t *testing.T) {
+	data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p0, err := Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := p0.Encode(buf); err != nil {
+		t.Fatalf("failed to encode: %v", err)
+	}
+	encoded0 := slices.Clone(buf.Bytes())
+
+	p1, err := Decode(bytes.NewReader(encoded0))
+	if err != nil {
+		t.Fatalf("failed to decode: %v", err)
+	}
+
+	// ignore differences in the profile size and the profile id
+	p0.Size = 0
+	p1.Size = 0
+	clear(p0.ProfileID[:])
+	clear(p1.ProfileID[:])
+
+	if diff := cmp.Diff(p0, p1); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
+
+	buf.Reset()
+	if err := p1.Encode(buf); err != nil {
+		t.Fatalf("failed to encode: %v", err)
+	}
+	encoded1 := slices.Clone(buf.Bytes())
+
+	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 }
