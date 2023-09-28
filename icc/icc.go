@@ -2,10 +2,12 @@ package icc
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math"
 	"slices"
@@ -157,7 +159,61 @@ func readN(r io.Reader, n int64) ([]byte, error) {
 	return data, nil
 }
 
+// profileHash calculates profile id.
+// The Profile ID shall be calculated using the MD5 fingerprinting method as defined in Internet RFC 1321.
+// The entire profile, whose length is given by the size field in the header, with the profile flags field,
+// rendering intent field, and profile ID field in the profile header temporarily set to zeros (00h),
+// shall be used to calculate the ID.
+type profileHash struct {
+	n    int64
+	buf  [128]byte
+	hash hash.Hash
+}
+
+func newProfileHash() *profileHash {
+	return &profileHash{
+		hash: md5.New(),
+	}
+}
+
+func (w *profileHash) Write(p []byte) (n int, err error) {
+	if w.n >= int64(len(w.buf)) {
+		n, err = w.hash.Write(p)
+		w.n += int64(n)
+		return n, err
+	}
+
+	n = copy(w.buf[w.n:], p)
+	w.n += int64(n)
+	if w.n >= int64(len(w.buf)) {
+		clear(w.buf[0x2c:0x30]) // the profile flags field
+		clear(w.buf[0x40:0x44]) // the rendering intent field
+		clear(w.buf[0x54:0x64]) // the profile id
+		_, err = w.hash.Write(w.buf[:])
+		if err != nil {
+			return
+		}
+	}
+
+	if n < len(p) {
+		var m int
+		m, err = w.hash.Write(p[n:])
+		n += m
+		w.n += int64(m)
+	}
+	return
+}
+
+func (w *profileHash) Hash128() [16]byte {
+	var ret [16]byte
+	copy(ret[:], w.hash.Sum(nil))
+	return ret
+}
+
 func Decode(r io.Reader) (*Profile, error) {
+	hash := newProfileHash()
+	r = io.TeeReader(r, hash)
+
 	var header ProfileHeader
 	if err := binary.Read(r, binary.BigEndian, &header); err != nil {
 		return nil, err
@@ -222,6 +278,7 @@ func Decode(r io.Reader) (*Profile, error) {
 		}
 	}
 
+	header.ProfileID = hash.Hash128()
 	return &Profile{
 		ProfileHeader: header,
 		Tags:          tags,
@@ -249,34 +306,46 @@ func (w *alignWriter) Align() error {
 
 func (p *Profile) Encode(w io.Writer) error {
 	// calculate the size of the profile header
-	offset := uint32(128)              // for the profile header
-	offset += 4                        // for the tag count
-	offset += uint32(len(p.Tags) * 12) // for the tag table
+	offset := uint32(128)                                   // for the profile header
+	offset += 4                                             // for the tag count
+	offset += uint32(len(p.Tags) * binary.Size(tagTable{})) // for the tag table
 
 	tagTable := make([]tagTable, len(p.Tags))
-	tagContents := make([][]byte, len(p.Tags))
+	tagContents := make([][]byte, 0, len(p.Tags))
 	for i, tag := range p.Tags {
 		// encode the tag content
 		data, err := tag.TagContent.MarshalBinary()
 		if err != nil {
 			return err
 		}
-		tagContents[i] = data
+		tagContents = append(tagContents, data)
 
 		// set the tag table
+		offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
 		tagTable[i].Signature = tag.Tag
 		tagTable[i].Offset = offset
 		tagTable[i].Size = uint32(len(data))
 
 		offset += uint32(len(data))
-		offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
 	}
 
+	// calculate profile id
 	header := p.ProfileHeader
 	header.Size = offset
 	header.Magic = ICCMagicNumber
+	hash := newProfileHash()
+	aw := &alignWriter{w: hash}
+	binary.Write(aw, binary.BigEndian, header)
+	binary.Write(aw, binary.BigEndian, uint32(len(p.Tags)))
+	binary.Write(aw, binary.BigEndian, tagTable)
+	for _, data := range tagContents {
+		aw.Align()
+		aw.Write(data)
+	}
+	header.ProfileID = hash.Hash128()
 
-	aw := &alignWriter{w: w}
+	// write the profile contents
+	aw = &alignWriter{w: w}
 	if err := binary.Write(aw, binary.BigEndian, header); err != nil {
 		return err
 	}
@@ -287,10 +356,10 @@ func (p *Profile) Encode(w io.Writer) error {
 		return err
 	}
 	for _, data := range tagContents {
-		if _, err := aw.Write(data); err != nil {
+		if err := aw.Align(); err != nil {
 			return err
 		}
-		if err := aw.Align(); err != nil {
+		if _, err := aw.Write(data); err != nil {
 			return err
 		}
 	}
