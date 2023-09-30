@@ -3,6 +3,7 @@ package icc
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -312,21 +313,33 @@ func (p *Profile) Encode(w io.Writer) error {
 
 	tagTable := make([]tagTable, len(p.Tags))
 	tagContents := make([][]byte, 0, len(p.Tags))
+	contentsOffsets := make(map[[32]byte]positionNumber, len(p.Tags))
 	for i, tag := range p.Tags {
 		// encode the tag content
 		data, err := tag.TagContent.MarshalBinary()
 		if err != nil {
 			return err
 		}
-		tagContents = append(tagContents, data)
 
 		// set the tag table
-		offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
-		tagTable[i].Signature = tag.Tag
-		tagTable[i].Offset = offset
-		tagTable[i].Size = uint32(len(data))
-
-		offset += uint32(len(data))
+		hash := sha256.Sum256(data)
+		if pos, ok := contentsOffsets[hash]; ok {
+			// the same tag content
+			tagTable[i].Signature = tag.Tag
+			tagTable[i].Offset = pos.Offset
+			tagTable[i].Size = pos.Size
+		} else {
+			tagContents = append(tagContents, data)
+			offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
+			tagTable[i].Signature = tag.Tag
+			tagTable[i].Offset = offset
+			tagTable[i].Size = uint32(len(data))
+			contentsOffsets[hash] = positionNumber{
+				Offset: offset,
+				Size:   uint32(len(data)),
+			}
+			offset += uint32(len(data))
+		}
 	}
 
 	// calculate profile id

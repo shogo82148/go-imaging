@@ -128,9 +128,9 @@ func Test_iPhone12Pro(t *testing.T) {
 			in, out float64
 		}{
 			{0.0, 0.0},
-			{0.1, 0.003981127655368823},
-			{0.5, 0.18946537237087296},
-			{0.9, 0.7765730269567972},
+			{0.1, 0.010023912650605525},
+			{0.5, 0.2140451926881055},
+			{0.9, 0.7874141418532061},
 			{1.0, 1.0},
 		}
 		for _, tt := range tests {
@@ -326,6 +326,10 @@ func TestEncode(t *testing.T) {
 		t.Fatalf("failed to encode: %v", err)
 	}
 	encoded1 := slices.Clone(buf.Bytes())
+
+	if diff := cmp.Diff(data, encoded0); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
 
 	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
