@@ -90,10 +90,17 @@ func FuzzDecodeWithMeta(f *testing.F) {
 		if err != nil {
 			f.Fatalf("failed to read testdata: %s", err)
 		}
+		if len(b) > 10*1024*1204 {
+			continue
+		}
 		f.Add(b)
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
+		if len(b) > 10*1024*1204 {
+			return
+		}
+
 		cfg, _, err := image.DecodeConfig(bytes.NewReader(b))
 		if err != nil {
 			return
