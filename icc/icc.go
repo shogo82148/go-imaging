@@ -341,6 +341,7 @@ func (p *Profile) Encode(w io.Writer) error {
 			offset += uint32(len(data))
 		}
 	}
+	offset = (offset + 0x03) &^ 0x03 // align to 4 bytes
 
 	// calculate profile id
 	header := p.ProfileHeader
@@ -355,6 +356,7 @@ func (p *Profile) Encode(w io.Writer) error {
 		aw.Align()
 		aw.Write(data)
 	}
+	aw.Align()
 	header.ProfileID = hash.Hash128()
 
 	// write the profile contents
@@ -375,6 +377,9 @@ func (p *Profile) Encode(w io.Writer) error {
 		if _, err := aw.Write(data); err != nil {
 			return err
 		}
+	}
+	if err := aw.Align(); err != nil {
+		return err
 	}
 	return nil
 }
