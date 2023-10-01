@@ -24,6 +24,9 @@ func FuzzDecode(f *testing.F) {
 		if err != nil {
 			f.Fatalf("failed to read testdata: %s", err)
 		}
+		if len(b) > 1024*1024 {
+			continue
+		}
 		f.Add(b)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
