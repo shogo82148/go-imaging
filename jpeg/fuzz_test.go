@@ -65,3 +65,54 @@ func FuzzDecode(f *testing.F) {
 		}
 	})
 }
+
+func FuzzDecodeWithMeta(f *testing.F) {
+	if testing.Short() {
+		f.Skip("Skipping in short mode")
+	}
+
+	testdata, err := os.ReadDir("../testdata")
+	if err != nil {
+		f.Fatalf("failed to read testdata directory: %s", err)
+	}
+	for _, de := range testdata {
+		if de.IsDir() || !strings.HasSuffix(de.Name(), ".jpeg") {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join("../testdata", de.Name()))
+		if err != nil {
+			f.Fatalf("failed to read testdata: %s", err)
+		}
+		f.Add(b)
+	}
+
+	f.Fuzz(func(t *testing.T, b []byte) {
+		cfg, _, err := image.DecodeConfig(bytes.NewReader(b))
+		if err != nil {
+			return
+		}
+		if cfg.Width*cfg.Height > 1e6 {
+			return
+		}
+
+		img0, err := DecodeWithMeta(bytes.NewReader(b))
+		if err != nil {
+			return
+		}
+
+		w := new(bytes.Buffer)
+		err = EncodeWithMeta(w, img0, nil)
+		if err != nil {
+			t.Fatalf("failed to encode valid image: %s", err)
+		}
+
+		img1, err := DecodeWithMeta(w)
+		if err != nil {
+			t.Fatalf("failed to decode roundtripped image: %s", err)
+		}
+
+		if want, got := img0.ICCProfile, img1.ICCProfile; (want != nil) != (got != nil) || (want != nil && got != nil && want.ProfileID != got.ProfileID) {
+			t.Errorf("ICC profile mismatch: got %v, want %v", got, want)
+		}
+	})
+}
