@@ -21,8 +21,9 @@ jobs:
           cache: true
 
       - name: Test
+        timeout-minutes: 10
         run: |
-          go test -v -coverprofile=profile.cov -timeout 10m ./...
+          go test -v -coverprofile=profile.cov -timeout 0 ./...
 
       - name: Send coverage
         if: always()
