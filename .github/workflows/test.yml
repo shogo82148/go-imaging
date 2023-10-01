@@ -6,6 +6,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -21,7 +22,7 @@ jobs:
 
       - name: Test
         run: |
-          go test -v -coverprofile=profile.cov ./...
+          go test -v -coverprofile=profile.cov -timeout 10m ./...
 
       - name: Send coverage
         if: always()
