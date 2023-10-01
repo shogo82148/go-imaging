@@ -128,9 +128,9 @@ func Test_iPhone12Pro(t *testing.T) {
 			in, out float64
 		}{
 			{0.0, 0.0},
-			{0.1, 0.003981127655368823},
-			{0.5, 0.18946537237087296},
-			{0.9, 0.7765730269567972},
+			{0.1, 0.010023912650605525},
+			{0.5, 0.2140451926881055},
+			{0.9, 0.7874141418532061},
 			{1.0, 1.0},
 		}
 		for _, tt := range tests {
@@ -290,44 +290,95 @@ func Test_USWebCoatedSWOP(t *testing.T) {
 }
 
 func TestEncode(t *testing.T) {
-	data, err := os.ReadFile("testdata/iPhone12Pro.icc")
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("iPhone12Pro", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	p0, err := Decode(bytes.NewReader(data))
-	if err != nil {
-		t.Fatal(err)
-	}
+		p0, err := Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	buf := new(bytes.Buffer)
-	if err := p0.Encode(buf); err != nil {
-		t.Fatalf("failed to encode: %v", err)
-	}
-	encoded0 := slices.Clone(buf.Bytes())
+		buf := new(bytes.Buffer)
+		if err := p0.Encode(buf); err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+		encoded0 := slices.Clone(buf.Bytes())
 
-	p1, err := Decode(bytes.NewReader(encoded0))
-	if err != nil {
-		t.Fatalf("failed to decode: %v", err)
-	}
+		p1, err := Decode(bytes.NewReader(encoded0))
+		if err != nil {
+			t.Fatalf("failed to decode: %v", err)
+		}
 
-	// ignore differences in the profile size and the profile id
-	p0.Size = 0
-	p1.Size = 0
-	clear(p0.ProfileID[:])
-	clear(p1.ProfileID[:])
+		if diff := cmp.Diff(p0, p1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
 
-	if diff := cmp.Diff(p0, p1); diff != "" {
-		t.Errorf("mismatch (-want +got):\n%s", diff)
-	}
+		buf.Reset()
+		if err := p1.Encode(buf); err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+		encoded1 := slices.Clone(buf.Bytes())
 
-	buf.Reset()
-	if err := p1.Encode(buf); err != nil {
-		t.Fatalf("failed to encode: %v", err)
-	}
-	encoded1 := slices.Clone(buf.Bytes())
+		if diff := cmp.Diff(data, encoded0); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
 
-	if diff := cmp.Diff(encoded0, encoded1); diff != "" {
-		t.Errorf("mismatch (-want +got):\n%s", diff)
-	}
+		if diff := cmp.Diff(encoded0, encoded1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+
+		if len(encoded0)%4 != 0 {
+			t.Errorf("encoded0 is not a multiple of 4 bytes")
+		}
+	})
+
+	t.Run("gimp-linear", func(t *testing.T) {
+		data, err := os.ReadFile("testdata/gimp-linear.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		p0, err := Decode(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := new(bytes.Buffer)
+		if err := p0.Encode(buf); err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+		encoded0 := slices.Clone(buf.Bytes())
+
+		p1, err := Decode(bytes.NewReader(encoded0))
+		if err != nil {
+			t.Fatalf("failed to decode: %v", err)
+		}
+
+		// ignore differences in the profile size and the profile id
+		p0.Size = 0
+		p1.Size = 0
+		clear(p0.ProfileID[:])
+		clear(p1.ProfileID[:])
+
+		if diff := cmp.Diff(p0, p1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+
+		buf.Reset()
+		if err := p1.Encode(buf); err != nil {
+			t.Fatalf("failed to encode: %v", err)
+		}
+		encoded1 := slices.Clone(buf.Bytes())
+
+		if diff := cmp.Diff(encoded0, encoded1); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+
+		if len(encoded0)%4 != 0 {
+			t.Errorf("encoded0 is not a multiple of 4 bytes")
+		}
+	})
 }

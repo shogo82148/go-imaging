@@ -247,6 +247,7 @@ func (t *TagContentParametricCurve) UnmarshalBinary(data []byte) error {
 	if err := binary.Read(r, binary.BigEndian, &curve); err != nil {
 		return err
 	}
+	t.FunctionType = curve.FunctionType
 
 	// read the parameters
 	params, err := t.params()

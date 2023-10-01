@@ -17,7 +17,6 @@ func encodeDecodeWithMeta(m *ImageWithMeta) (*ImageWithMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	os.WriteFile("testdata/encode.png", b.Bytes(), 0644)
 	return DecodeWithMeta(&b)
 }
 
@@ -155,30 +154,61 @@ func TestICCProfileUTF8ToLatin1(t *testing.T) {
 }
 
 func TestEncodeWithMeta_ICCProfile(t *testing.T) {
-	f, err := os.Open("testdata/iPhone12Pro.icc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
+	t.Run("iPhone12Pro", func(t *testing.T) {
+		f, err := os.Open("testdata/iPhone12Pro.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
 
-	profile, err := icc.Decode(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+		profile, err := icc.Decode(f)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	m := &ImageWithMeta{
-		Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
-		// "International Color Consortium Profile" in Portuguese
-		ICCProfileName: "Perfil do Consórcio Internacional de Cores",
-		ICCProfile:     profile,
-	}
+		m := &ImageWithMeta{
+			Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
+			// "International Color Consortium Profile" in Portuguese
+			ICCProfileName: "Perfil do Consórcio Internacional de Cores",
+			ICCProfile:     profile,
+		}
 
-	decoded, err := encodeDecodeWithMeta(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+		decoded, err := encodeDecodeWithMeta(m)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if decoded.ICCProfile == nil {
-		t.Fatal("unexpected nil ICC Profile")
-	}
+		if decoded.ICCProfile == nil {
+			t.Fatal("unexpected nil ICC Profile")
+		}
+	})
+
+	t.Run("gimp-linear", func(t *testing.T) {
+		f, err := os.Open("testdata/gimp-linear.icc")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+
+		profile, err := icc.Decode(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		m := &ImageWithMeta{
+			Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
+			// "International Color Consortium Profile" in Portuguese
+			ICCProfileName: "Perfil do Consórcio Internacional de Cores",
+			ICCProfile:     profile,
+		}
+
+		decoded, err := encodeDecodeWithMeta(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if decoded.ICCProfile == nil {
+			t.Fatal("unexpected nil ICC Profile")
+		}
+	})
 }
