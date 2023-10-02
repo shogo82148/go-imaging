@@ -246,7 +246,7 @@ func Decode(r io.Reader) (*Profile, error) {
 
 	tags := make([]TagEntry, tagCount)
 	for i, t := range table {
-		if t.Offset+t.Size > header.Size {
+		if t.Offset < iccHeaderSize || t.Offset+t.Size > header.Size {
 			return nil, errors.New("icc: invalid tag table")
 		}
 		if t.Offset > t.Offset+t.Size {
