@@ -236,6 +236,9 @@ func Decode(r io.Reader) (*Profile, error) {
 	if err := binary.Read(br, binary.BigEndian, &tagCount); err != nil {
 		return nil, err
 	}
+	if int64(tagCount)*12 > int64(header.Size)-iccHeaderSize {
+		return nil, errors.New("icc: invalid tag count")
+	}
 	table := make([]tagTable, tagCount)
 	if err := binary.Read(br, binary.BigEndian, &table); err != nil {
 		return nil, err
