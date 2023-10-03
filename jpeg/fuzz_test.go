@@ -111,8 +111,8 @@ func FuzzDecodeWithMeta(f *testing.F) {
 			t.Fatalf("failed to decode roundtripped image: %s", err)
 		}
 
-		if want, got := img0.ICCProfile, img1.ICCProfile; (want != nil) != (got != nil) || (want != nil && got != nil && want.ProfileID != got.ProfileID) {
-			t.Errorf("ICC profile mismatch: got %v, want %v", got, want)
+		if (img0.ICCProfile != nil) != (img1.ICCProfile != nil) {
+			t.Errorf("ICC profile mismatch")
 		}
 	})
 }

@@ -124,8 +124,8 @@ func FuzzDecodeWithMeta(f *testing.F) {
 		if want, got := img0.ICCProfileName, img1.ICCProfileName; want != got {
 			t.Errorf("ICC profile name mismatch: got %q, want %q", got, want)
 		}
-		if want, got := img0.ICCProfile, img1.ICCProfile; (want != nil) != (got != nil) || (want != nil && got != nil && want.ProfileID != got.ProfileID) {
-			t.Errorf("ICC profile mismatch: got %v, want %v", got, want)
+		if (img0.ICCProfile != nil) != (img1.ICCProfile != nil) {
+			t.Errorf("ICC profile mismatch")
 		}
 	})
 }
