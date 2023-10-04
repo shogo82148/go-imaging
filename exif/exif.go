@@ -2,7 +2,7 @@ package exif
 
 import "strconv"
 
-type Exif struct {
+type TIFF struct {
 	// Orientation is the orientation of the image.
 	Orientation Orientation
 
@@ -36,6 +36,14 @@ type Exif struct {
 	// Copyright is the copyright.
 	Copyright *string
 
+	// Exif is the Exif information.
+	Exif *Exif
+
+	//  is the GPS information.
+	*GPS
+}
+
+type Exif struct {
 	// ExposureTime is the exposure time, given in seconds.
 	ExposureTime *Rational
 
@@ -68,6 +76,104 @@ type Exif struct {
 
 	// ExposureBiasValue is the exposure bias.
 	ExposureBiasValue *SRational
+}
+
+type GPS struct {
+	// VersionID is the version of GPSInfoIFD.
+	VersionID [4]byte
+
+	// LatitudeRef is the latitude of the GPS receiver.
+	LatitudeRef *string
+
+	// Latitude is the latitude of the GPS receiver.
+	Latitude [3]Rational
+
+	// LongitudeRef is the longitude of the GPS receiver.
+	LongitudeRef *string
+
+	// Longitude is the longitude of the GPS receiver.
+	Longitude [3]Rational
+
+	// AltitudeRef is the altitude of the GPS receiver.
+	AltitudeRef *byte
+
+	// Altitude is the altitude of the GPS receiver.
+	Altitude *Rational
+
+	// TimeStamp is the time as UTC (Coordinated Universal Time).
+	TimeStamp [3]Rational
+
+	// Satellites is the GPS satellites used for measurements.
+	Satellites *string
+
+	// Status is the status of the GPS receiver when the image is recorded.
+	Status *string
+
+	// MeasureMode is the GPS measurement mode.
+	MeasureMode *string
+
+	// DOP is the measurement precision of GPS receiver.
+	DOP Rational
+
+	// SpeedRef is the speed unit of GPS receiver.
+	SpeedRef *string
+
+	// Speed is the speed of GPS receiver.
+	Speed *Rational
+
+	// TrackRef is the reference for giving the direction of GPS receiver movement.
+	TrackRef *string
+
+	// Track is the direction of GPS receiver movement.
+	Track *Rational
+
+	// ImgDirectionRef is the reference for giving the direction of the image when it is captured.
+	ImgDirectionRef *string
+
+	// ImgDirection is the direction of the image when it is captured.
+	ImgDirection *Rational
+
+	// MapDatum is the geodetic survey data used by the GPS receiver.
+	MapDatum *string
+
+	// DestLatitudeRef is the latitude of the destination point.
+	DestLatitudeRef *string
+
+	// DestLatitude is the latitude of the destination point.
+	DestLatitude [3]Rational
+
+	// DestLongitudeRef is the longitude of the destination point.
+	DestLongitudeRef *string
+
+	// DestLongitude is the longitude of the destination point.
+	DestLongitude [3]Rational
+
+	// DestBearingRef is the reference used for giving the bearing to the destination point.
+	DestBearingRef *string
+
+	// DestBearing is the bearing to the destination point.
+	DestBearing *Rational
+
+	// DestDistanceRef is the unit used for expressing the distance to the destination point.
+	DestDistanceRef *string
+
+	// DestDistance is the distance to the destination point.
+	DestDistance *Rational
+
+	// ProcessingMethod is the name of the method used for location finding.
+	ProcessingMethod []byte
+
+	// AreaInformation is the name of the GPS area.
+	AreaInformation []byte
+
+	// DateStamp is the date as UTC (Coordinated Universal Time).
+	DateStamp *string
+
+	// Differential is the differential correction applied to the GPS receiver.
+	Differential *uint16
+
+	// HPositioningError is the horizontal positioning errors.
+	HPositioningError *Rational
 }
 
 type Orientation int
@@ -268,6 +374,42 @@ const (
 	tagDeviceSettingDescription tag = 0xa40b
 	tagSubjectDistanceRange     tag = 0xa40c
 	tagImageUniqueID            tag = 0xa420
+)
+
+// IFD metadata tags.
+const (
+	tagGPSVersionID         tag = 0x0000
+	tagGPSLatitudeRef       tag = 0x0001
+	tagGPSLatitude          tag = 0x0002
+	tagGPSLongitudeRef      tag = 0x0003
+	tagGPSLongitude         tag = 0x0004
+	tagGPSAltitudeRef       tag = 0x0005
+	tagGPSAltitude          tag = 0x0006
+	tagGPSTimeStamp         tag = 0x0007
+	tagGPSSatellites        tag = 0x0008
+	tagGPSStatus            tag = 0x0009
+	tagGPSMeasureMode       tag = 0x000a
+	tagGPSDOP               tag = 0x000b
+	tagGPSSpeedRef          tag = 0x000c
+	tagGPSSpeed             tag = 0x000d
+	tagGPSTrackRef          tag = 0x000e
+	tagGPSTrack             tag = 0x000f
+	tagGPSImgDirectionRef   tag = 0x0010
+	tagGPSImgDirection      tag = 0x0011
+	tagGPSMapDatum          tag = 0x0012
+	tagGPSDestLatitudeRef   tag = 0x0013
+	tagGPSDestLatitude      tag = 0x0014
+	tagGPSDestLongitudeRef  tag = 0x0015
+	tagGPSDestLongitude     tag = 0x0016
+	tagGPSDestBearingRef    tag = 0x0017
+	tagGPSDestBearing       tag = 0x0018
+	tagGPSDestDistanceRef   tag = 0x0019
+	tagGPSDestDistance      tag = 0x001a
+	tagGPSProcessingMethod  tag = 0x001b
+	tagGPSAreaInformation   tag = 0x001c
+	tagGPSDateStamp         tag = 0x001d
+	tagGPSDifferential      tag = 0x001e
+	tagGPSHPositioningError tag = 0x001f
 )
 
 type idfEntry struct {

@@ -15,7 +15,7 @@ type decodeState struct {
 	byteOrder binary.ByteOrder
 }
 
-func Decode(r io.Reader) (*Exif, error) {
+func Decode(r io.Reader) (*TIFF, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func Decode(r io.Reader) (*Exif, error) {
 	return d.decode()
 }
 
-func (d *decodeState) decode() (*Exif, error) {
+func (d *decodeState) decode() (*TIFF, error) {
 	// skip Exif marker
 	if len(d.data) < 6 {
 		return nil, errors.New("exif: invalid data header")
@@ -54,7 +54,7 @@ func (d *decodeState) decode() (*Exif, error) {
 	if err != nil {
 		return nil, err
 	}
-	var exif Exif
+	var tiff TIFF
 	for _, entry := range idf0.entries {
 		switch entry.tag {
 		case tagImageWidth:
@@ -64,59 +64,59 @@ func (d *decodeState) decode() (*Exif, error) {
 		case tagPhotometricInterpretation:
 		case tagImageDescription:
 			if entry.dataType == dataTypeAscii {
-				exif.ImageDescription = pointer.String(entry.asciiData)
+				tiff.ImageDescription = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.ImageDescription = pointer.String(entry.utf8data)
+				tiff.ImageDescription = pointer.String(entry.utf8data)
 			}
 		case tagMake:
 			if entry.dataType == dataTypeAscii {
-				exif.Make = pointer.String(entry.asciiData)
+				tiff.Make = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.Make = pointer.String(entry.utf8data)
+				tiff.Make = pointer.String(entry.utf8data)
 			}
 		case tagModel:
 			if entry.dataType == dataTypeAscii {
-				exif.Model = pointer.String(entry.asciiData)
+				tiff.Model = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.Model = pointer.String(entry.utf8data)
+				tiff.Model = pointer.String(entry.utf8data)
 			}
 		case tagStripOffsets:
 		case tagOrientation:
 			if entry.dataType == dataTypeShort && len(entry.shortData) == 1 {
-				exif.Orientation = Orientation(entry.shortData[0])
+				tiff.Orientation = Orientation(entry.shortData[0])
 			}
 		case tagSamplesPerPixel:
 		case tagRowsPerStrip:
 		case tagStripByteCounts:
 		case tagXResolution:
 			if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
-				exif.XResolution = pointer.Ptr(entry.rationalData[0])
+				tiff.XResolution = pointer.Ptr(entry.rationalData[0])
 			}
 		case tagYResolution:
 			if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
-				exif.YResolution = pointer.Ptr(entry.rationalData[0])
+				tiff.YResolution = pointer.Ptr(entry.rationalData[0])
 			}
 		case tagPlanarConfiguration:
 		case tagResolutionUnit:
 			if entry.dataType == dataTypeShort && len(entry.shortData) == 1 {
-				exif.ResolutionUnit = ResolutionUnit(entry.shortData[0])
+				tiff.ResolutionUnit = ResolutionUnit(entry.shortData[0])
 			}
 		case tagTransferFunction:
 		case tagSoftware:
 			if entry.dataType == dataTypeAscii {
-				exif.Software = pointer.String(entry.asciiData)
+				tiff.Software = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.Software = pointer.String(entry.utf8data)
+				tiff.Software = pointer.String(entry.utf8data)
 			}
 		case tagDateTime:
 			if entry.dataType == dataTypeAscii {
-				exif.DateTime = pointer.String(entry.asciiData)
+				tiff.DateTime = pointer.String(entry.asciiData)
 			}
 		case tagArtist:
 			if entry.dataType == dataTypeAscii {
-				exif.Artist = pointer.String(entry.asciiData)
+				tiff.Artist = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.Artist = pointer.String(entry.utf8data)
+				tiff.Artist = pointer.String(entry.utf8data)
 			}
 		case tagWhitePoint:
 		case tagPrimaryChromaticities:
@@ -128,117 +128,194 @@ func (d *decodeState) decode() (*Exif, error) {
 		case tagReferenceBlackWhite:
 		case tagCopyright:
 			if entry.dataType == dataTypeAscii {
-				exif.Copyright = pointer.String(entry.asciiData)
+				tiff.Copyright = pointer.String(entry.asciiData)
 			} else if entry.dataType == dataTypeUTF8 {
-				exif.Copyright = pointer.String(entry.utf8data)
+				tiff.Copyright = pointer.String(entry.utf8data)
 			}
 		case tagExifIFDPointer:
-			if entry.dataType != dataTypeLong || len(entry.longData) != 1 {
-				break
-			}
-			idfExif, err := d.decodeIFD(entry.longData[0])
-			if err != nil {
-				return nil, err
-			}
-			for _, entry := range idfExif.entries {
-				switch entry.tag {
-				case tagExposureTime:
-					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
-						exif.ExposureTime = pointer.Ptr(entry.rationalData[0])
-					}
-				case tagFNumber:
-					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
-						exif.FNumber = pointer.Ptr(entry.rationalData[0])
-					}
-				case tagExposureProgram:
-					if entry.dataType == dataTypeShort && len(entry.shortData) == 1 {
-						exif.ExposureProgram = ExposureProgram(entry.shortData[0])
-					}
-				case tagSpectralSensitivity:
-					if entry.dataType == dataTypeAscii {
-						exif.SpectralSensitivity = pointer.String(entry.asciiData)
-					}
-				case tagISOSpeedRatings:
-					if entry.dataType == dataTypeShort {
-						exif.ISOSpeedRatings = entry.shortData
-					}
-				case tagOECF:
-				case tagExifVersion:
-				case tagDateTimeOriginal:
-					if entry.dataType == dataTypeAscii {
-						exif.DateTimeOriginal = pointer.String(entry.asciiData)
-					}
-				case tagDateTimeDigitized:
-					if entry.dataType == dataTypeAscii {
-						exif.DateTimeDigitized = pointer.String(entry.asciiData)
-					}
-				case tagComponentsConfiguration:
-				case tagCompressedBitsPerPixel:
-				case tagShutterSpeedValue:
-					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
-						exif.ShutterSpeedValue = pointer.Ptr(entry.sRationalData[0])
-					}
-				case tagApertureValue:
-					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
-						exif.ApertureValue = pointer.Ptr(entry.rationalData[0])
-					}
-				case tagBrightnessValue:
-					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
-						exif.BrightnessValue = pointer.Ptr(entry.sRationalData[0])
-					}
-				case tagExposureBiasValue:
-					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
-						exif.ExposureBiasValue = pointer.Ptr(entry.sRationalData[0])
-					}
-
-				// TODO: implement
-				case tagMaxApertureValue:
-				case tagSubjectDistance:
-				case tagMeteringMode:
-				case tagLightSource:
-				case tagFlash:
-				case tagFocalLength:
-				case tagSubjectArea:
-				case tagMakerNote:
-				case tagUserComment:
-				case tagSubsecTime:
-				case tagSubsecTimeOriginal:
-				case tagSubsecTimeDigitized:
-				case tagFlashpixVersion:
-				case tagColorSpace:
-				case tagPixelXDimension:
-				case tagPixelYDimension:
-				case tagRelatedSoundFile:
-				case tagFlashEnergy:
-				case tagSpatialFrequencyResponse:
-				case tagFocalPlaneXResolution:
-				case tagFocalPlaneYResolution:
-				case tagFocalPlaneResolutionUnit:
-				case tagSubjectLocation:
-				case tagExposureIndex:
-				case tagSensingMethod:
-				case tagFileSource:
-				case tagSceneType:
-				case tagCFAPattern:
-				case tagCustomRendered:
-				case tagExposureMode:
-				case tagWhiteBalance:
-				case tagDigitalZoomRatio:
-				case tagFocalLengthIn35mmFilm:
-				case tagSceneCaptureType:
-				case tagGainControl:
-				case tagContrast:
-				case tagSaturation:
-				case tagSharpness:
-				case tagDeviceSettingDescription:
-				case tagSubjectDistanceRange:
-				case tagImageUniqueID:
+			if entry.dataType == dataTypeLong && len(entry.longData) == 1 {
+				exif, err := d.decodeExif(entry.longData[0])
+				if err != nil {
+					return nil, err
 				}
+				tiff.Exif = exif
 			}
 		case tagGPSInfoIFDPointer:
+			if entry.dataType == dataTypeLong && len(entry.longData) == 1 {
+				gps, err := d.decodeGPS(entry.longData[0])
+				if err != nil {
+					return nil, err
+				}
+				tiff.GPS = gps
+			}
+		}
+	}
+	return &tiff, nil
+}
+
+func (d *decodeState) decodeExif(offset uint32) (*Exif, error) {
+	idfExif, err := d.decodeIFD(offset)
+	if err != nil {
+		return nil, err
+	}
+
+	var exif Exif
+	for _, entry := range idfExif.entries {
+		switch entry.tag {
+		case tagExposureTime:
+			if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+				exif.ExposureTime = pointer.Ptr(entry.rationalData[0])
+			}
+		case tagFNumber:
+			if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+				exif.FNumber = pointer.Ptr(entry.rationalData[0])
+			}
+		case tagExposureProgram:
+			if entry.dataType == dataTypeShort && len(entry.shortData) == 1 {
+				exif.ExposureProgram = ExposureProgram(entry.shortData[0])
+			}
+		case tagSpectralSensitivity:
+			if entry.dataType == dataTypeAscii {
+				exif.SpectralSensitivity = pointer.String(entry.asciiData)
+			}
+		case tagISOSpeedRatings:
+			if entry.dataType == dataTypeShort {
+				exif.ISOSpeedRatings = entry.shortData
+			}
+		case tagOECF:
+		case tagExifVersion:
+		case tagDateTimeOriginal:
+			if entry.dataType == dataTypeAscii {
+				exif.DateTimeOriginal = pointer.String(entry.asciiData)
+			}
+		case tagDateTimeDigitized:
+			if entry.dataType == dataTypeAscii {
+				exif.DateTimeDigitized = pointer.String(entry.asciiData)
+			}
+		case tagComponentsConfiguration:
+		case tagCompressedBitsPerPixel:
+		case tagShutterSpeedValue:
+			if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+				exif.ShutterSpeedValue = pointer.Ptr(entry.sRationalData[0])
+			}
+		case tagApertureValue:
+			if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+				exif.ApertureValue = pointer.Ptr(entry.rationalData[0])
+			}
+		case tagBrightnessValue:
+			if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+				exif.BrightnessValue = pointer.Ptr(entry.sRationalData[0])
+			}
+		case tagExposureBiasValue:
+			if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+				exif.ExposureBiasValue = pointer.Ptr(entry.sRationalData[0])
+			}
+
+		// TODO: implement
+		case tagMaxApertureValue:
+		case tagSubjectDistance:
+		case tagMeteringMode:
+		case tagLightSource:
+		case tagFlash:
+		case tagFocalLength:
+		case tagSubjectArea:
+		case tagMakerNote:
+		case tagUserComment:
+		case tagSubsecTime:
+		case tagSubsecTimeOriginal:
+		case tagSubsecTimeDigitized:
+		case tagFlashpixVersion:
+		case tagColorSpace:
+		case tagPixelXDimension:
+		case tagPixelYDimension:
+		case tagRelatedSoundFile:
+		case tagFlashEnergy:
+		case tagSpatialFrequencyResponse:
+		case tagFocalPlaneXResolution:
+		case tagFocalPlaneYResolution:
+		case tagFocalPlaneResolutionUnit:
+		case tagSubjectLocation:
+		case tagExposureIndex:
+		case tagSensingMethod:
+		case tagFileSource:
+		case tagSceneType:
+		case tagCFAPattern:
+		case tagCustomRendered:
+		case tagExposureMode:
+		case tagWhiteBalance:
+		case tagDigitalZoomRatio:
+		case tagFocalLengthIn35mmFilm:
+		case tagSceneCaptureType:
+		case tagGainControl:
+		case tagContrast:
+		case tagSaturation:
+		case tagSharpness:
+		case tagDeviceSettingDescription:
+		case tagSubjectDistanceRange:
+		case tagImageUniqueID:
 		}
 	}
 	return &exif, nil
+}
+
+func (d *decodeState) decodeGPS(offset uint32) (*GPS, error) {
+	idfGPS, err := d.decodeIFD(offset)
+	if err != nil {
+		return nil, err
+	}
+
+	var gps GPS
+	for _, entry := range idfGPS.entries {
+		switch entry.tag {
+		case tagGPSVersionID:
+		case tagGPSLatitudeRef:
+			if entry.dataType == dataTypeAscii {
+				gps.LatitudeRef = pointer.String(entry.asciiData)
+			}
+		case tagGPSLatitude:
+			if entry.dataType == dataTypeRational && len(entry.rationalData) == 3 {
+				copy(gps.Latitude[:], entry.rationalData)
+			}
+		case tagGPSLongitudeRef:
+			if entry.dataType == dataTypeAscii {
+				gps.LongitudeRef = pointer.String(entry.asciiData)
+			}
+		case tagGPSLongitude:
+			if entry.dataType == dataTypeRational && len(entry.rationalData) == 3 {
+				copy(gps.Longitude[:], entry.rationalData)
+			}
+
+		// TODO: implement
+		case tagGPSAltitudeRef:
+		case tagGPSAltitude:
+		case tagGPSTimeStamp:
+		case tagGPSSatellites:
+		case tagGPSStatus:
+		case tagGPSMeasureMode:
+		case tagGPSDOP:
+		case tagGPSSpeedRef:
+		case tagGPSSpeed:
+		case tagGPSTrackRef:
+		case tagGPSTrack:
+		case tagGPSImgDirectionRef:
+		case tagGPSImgDirection:
+		case tagGPSMapDatum:
+		case tagGPSDestLatitudeRef:
+		case tagGPSDestLatitude:
+		case tagGPSDestLongitudeRef:
+		case tagGPSDestLongitude:
+		case tagGPSDestBearingRef:
+		case tagGPSDestBearing:
+		case tagGPSDestDistanceRef:
+		case tagGPSDestDistance:
+		case tagGPSProcessingMethod:
+		case tagGPSAreaInformation:
+		case tagGPSDateStamp:
+		case tagGPSDifferential:
+		case tagGPSHPositioningError:
+		}
+	}
+	return &gps, nil
 }
 
 func (d *decodeState) decodeIFD(offset uint32) (*idf, error) {
