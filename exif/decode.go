@@ -133,6 +133,108 @@ func (d *decodeState) decode() (*Exif, error) {
 				exif.Copyright = pointer.String(entry.utf8data)
 			}
 		case tagExifIFDPointer:
+			if entry.dataType != dataTypeLong || len(entry.longData) != 1 {
+				break
+			}
+			idfExif, err := d.decodeIFD(entry.longData[0])
+			if err != nil {
+				return nil, err
+			}
+			for _, entry := range idfExif.entries {
+				switch entry.tag {
+				case tagExposureTime:
+					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+						exif.ExposureTime = pointer.Ptr(entry.rationalData[0])
+					}
+				case tagFNumber:
+					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+						exif.FNumber = pointer.Ptr(entry.rationalData[0])
+					}
+				case tagExposureProgram:
+					if entry.dataType == dataTypeShort && len(entry.shortData) == 1 {
+						exif.ExposureProgram = ExposureProgram(entry.shortData[0])
+					}
+				case tagSpectralSensitivity:
+					if entry.dataType == dataTypeAscii {
+						exif.SpectralSensitivity = pointer.String(entry.asciiData)
+					}
+				case tagISOSpeedRatings:
+					if entry.dataType == dataTypeShort {
+						exif.ISOSpeedRatings = entry.shortData
+					}
+				case tagOECF:
+				case tagExifVersion:
+				case tagDateTimeOriginal:
+					if entry.dataType == dataTypeAscii {
+						exif.DateTimeOriginal = pointer.String(entry.asciiData)
+					}
+				case tagDateTimeDigitized:
+					if entry.dataType == dataTypeAscii {
+						exif.DateTimeDigitized = pointer.String(entry.asciiData)
+					}
+				case tagComponentsConfiguration:
+				case tagCompressedBitsPerPixel:
+				case tagShutterSpeedValue:
+					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+						exif.ShutterSpeedValue = pointer.Ptr(entry.sRationalData[0])
+					}
+				case tagApertureValue:
+					if entry.dataType == dataTypeRational && len(entry.rationalData) == 1 {
+						exif.ApertureValue = pointer.Ptr(entry.rationalData[0])
+					}
+				case tagBrightnessValue:
+					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+						exif.BrightnessValue = pointer.Ptr(entry.sRationalData[0])
+					}
+				case tagExposureBiasValue:
+					if entry.dataType == dataTypeSRational && len(entry.sRationalData) == 1 {
+						exif.ExposureBiasValue = pointer.Ptr(entry.sRationalData[0])
+					}
+
+				// TODO: implement
+				case tagMaxApertureValue:
+				case tagSubjectDistance:
+				case tagMeteringMode:
+				case tagLightSource:
+				case tagFlash:
+				case tagFocalLength:
+				case tagSubjectArea:
+				case tagMakerNote:
+				case tagUserComment:
+				case tagSubsecTime:
+				case tagSubsecTimeOriginal:
+				case tagSubsecTimeDigitized:
+				case tagFlashpixVersion:
+				case tagColorSpace:
+				case tagPixelXDimension:
+				case tagPixelYDimension:
+				case tagRelatedSoundFile:
+				case tagFlashEnergy:
+				case tagSpatialFrequencyResponse:
+				case tagFocalPlaneXResolution:
+				case tagFocalPlaneYResolution:
+				case tagFocalPlaneResolutionUnit:
+				case tagSubjectLocation:
+				case tagExposureIndex:
+				case tagSensingMethod:
+				case tagFileSource:
+				case tagSceneType:
+				case tagCFAPattern:
+				case tagCustomRendered:
+				case tagExposureMode:
+				case tagWhiteBalance:
+				case tagDigitalZoomRatio:
+				case tagFocalLengthIn35mmFilm:
+				case tagSceneCaptureType:
+				case tagGainControl:
+				case tagContrast:
+				case tagSaturation:
+				case tagSharpness:
+				case tagDeviceSettingDescription:
+				case tagSubjectDistanceRange:
+				case tagImageUniqueID:
+				}
+			}
 		case tagGPSInfoIFDPointer:
 		}
 	}
