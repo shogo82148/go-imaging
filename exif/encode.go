@@ -110,6 +110,24 @@ func (e *encodeState) extend(n int) {
 
 func convertTIFFToIDF(t *TIFF) (*idf, error) {
 	entries := []*idfEntry{}
+	if t.ImageDescription != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagImageDescription, *t.ImageDescription),
+		)
+	}
+	if t.Make != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagMake, *t.Make),
+		)
+	}
+	if t.Model != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagModel, *t.Model),
+		)
+	}
 	if t.Orientation != 0 {
 		entries = append(entries, &idfEntry{
 			tag:      tagOrientation,
@@ -137,6 +155,31 @@ func convertGPSInfoToIDF(t *GPS) (*idf, error) {
 	}, nil
 }
 
+func convertAsciiOrUTF8(t tag, s string) *idfEntry {
+	if isAscii(s) {
+		return &idfEntry{
+			tag:       t,
+			dataType:  dataTypeAscii,
+			asciiData: s,
+		}
+	} else {
+		return &idfEntry{
+			tag:      t,
+			dataType: dataTypeUTF8,
+			utf8data: s,
+		}
+	}
+}
+
+func isAscii(s string) bool {
+	for _, r := range s {
+		if r > 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *encodeState) encodeIDF(idf *idf, offset uint32) (uint32, error) {
 	count := uint16(len(idf.entries))
 	e.byteOrder.PutUint16(e.data[offset:offset+2], count)
@@ -162,6 +205,20 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 	case dataTypeByte:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.byteData)))
 		offset += 4
+	case dataTypeAscii:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.asciiData)))
+		offset += 4
+		if len(entry.asciiData) <= 3 {
+			n := copy(e.data[offset:offset+4], entry.asciiData)
+			e.data[offset+uint32(n)] = '\x00'
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(len(entry.asciiData) + 1)
+			copy(e.data[l:], entry.asciiData)
+			e.data[l+len(entry.asciiData)] = '\x00'
+		}
+		offset += 4
 	case dataTypeShort:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.shortData)))
 		offset += 4
@@ -179,6 +236,28 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 		}
 		offset += 4
 	case dataTypeLong:
+	case dataTypeRational:
+	case dataTypeSByte:
+	case dataTypeUndefined:
+	case dataTypeSShort:
+	case dataTypeSLong:
+	case dataTypeSRational:
+	case dataTypeFloat:
+	case dataTypeDouble:
+	case dataTypeUTF8:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.utf8data)))
+		offset += 4
+		if len(entry.utf8data) <= 3 {
+			n := copy(e.data[offset:offset+4], entry.utf8data)
+			e.data[offset+uint32(n)] = '\x00'
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(len(entry.utf8data) + 1)
+			copy(e.data[l:], entry.utf8data)
+			e.data[l+len(entry.utf8data)] = '\x00'
+		}
+		offset += 4
 	}
 	return offset, nil
 }
