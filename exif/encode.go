@@ -12,25 +12,21 @@ import (
 type encodeState struct {
 	data      []byte
 	byteOrder binary.ByteOrder
+
+	exifOffset uint32 // offset to the pointer for ExifIFD
+	gpsOffset  uint32 // offset to the pointer for GPSInfoIFD
 }
 
 func Encode(w io.Writer, t *TIFF) error {
-	var err error
-	var idfTIFF, idfExif, idfGPS *idf
-	idfTIFF, idfExif, idfGPS, err = convertIDF(t)
-	if err != nil {
-		return err
-	}
-
 	e := &encodeState{
 		data:      []byte{},
 		byteOrder: binary.BigEndian,
 	}
-	if err := e.encode(idfTIFF, idfExif, idfGPS); err != nil {
+	if err := e.encode(t); err != nil {
 		return err
 	}
 
-	_, err = io.WriteString(w, "Exif\x00\x00")
+	_, err := io.WriteString(w, "Exif\x00\x00")
 	if err != nil {
 		return err
 	}
@@ -38,19 +34,47 @@ func Encode(w io.Writer, t *TIFF) error {
 	return err
 }
 
-func (e *encodeState) encode(idfTIFF, idfExif, idfGPS *idf) error {
-	size := 8
-	if idfTIFF != nil {
-		size += 2 + 12*len(idfTIFF.entries) + 4
+func (e *encodeState) encode(t *TIFF) error {
+	var err error
+	var idfTIFF, idfExif, idfGPS *idf
+	idfTIFF, err = e.convertTIFFToIDF(t)
+	if err != nil {
+		return err
+	}
+	if t.Exif != nil {
+		idfExif, err = e.convertExifToIDF(t.Exif)
+		if err != nil {
+			return err
+		}
+	}
+	if t.GPS != nil {
+		idfGPS, err = e.convertGPSToIDF(t.GPS)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := e.encodeHeader(); err != nil {
+		return err
+	}
+	if err := e.encodeTIFF(idfTIFF); err != nil {
+		return err
 	}
 	if idfExif != nil {
-		size += 2 + 12*len(idfExif.entries) + 4
+		if err := e.encodeExif(idfExif); err != nil {
+			return err
+		}
 	}
 	if idfGPS != nil {
-		size += 2 + 12*len(idfGPS.entries) + 4
+		if err := e.encodeGPS(idfGPS); err != nil {
+			return err
+		}
 	}
-	e.extend(size)
+	return nil
+}
 
+func (e *encodeState) encodeHeader() error {
+	e.extend(8)
 	if e.byteOrder == binary.BigEndian {
 		e.data[0] = 'M'
 		e.data[1] = 'M'
@@ -60,31 +84,30 @@ func (e *encodeState) encode(idfTIFF, idfExif, idfGPS *idf) error {
 	}
 	e.byteOrder.PutUint16(e.data[2:4], 0x002a)
 	e.byteOrder.PutUint32(e.data[4:8], 0x0008)
-
-	var offset uint32 = 8
-	var err error
-	if idfTIFF != nil {
-		offset, err = e.encodeIDF(idfTIFF, offset)
-		if err != nil {
-			return err
-		}
-	}
-	if idfExif != nil {
-		offset, err = e.encodeIDF(idfExif, offset)
-		if err != nil {
-			return err
-		}
-	}
-	if idfGPS != nil {
-		offset, err = e.encodeIDF(idfGPS, offset)
-		if err != nil {
-			return err
-		}
-	}
-	if offset != uint32(size) {
-		panic(fmt.Sprintf("internal error: offset != size: %d != %d", offset, size))
-	}
 	return nil
+}
+
+func (e *encodeState) encodeTIFF(idfTIFF *idf) error {
+	offset := uint32(len(e.data))
+	e.extend(2 + 12*len(idfTIFF.entries) + 4)
+	_, err := e.encodeIDF(idfTIFF, offset)
+	return err
+}
+
+func (e *encodeState) encodeExif(idfExif *idf) error {
+	offset := uint32(len(e.data))
+	e.byteOrder.PutUint32(e.data[e.exifOffset:], offset)
+	e.extend(2 + 12*len(idfExif.entries) + 4)
+	_, err := e.encodeIDF(idfExif, offset)
+	return err
+}
+
+func (e *encodeState) encodeGPS(idfGPS *idf) error {
+	offset := uint32(len(e.data))
+	e.byteOrder.PutUint32(e.data[e.gpsOffset:], offset)
+	e.extend(2 + 12*len(idfGPS.entries) + 4)
+	_, err := e.encodeIDF(idfGPS, offset)
+	return err
 }
 
 func (e *encodeState) grow(n int) {
@@ -98,7 +121,7 @@ func (e *encodeState) extend(n int) {
 	clear(e.data[l:])
 }
 
-func convertIDF(t *TIFF) (idfTIFF, idfExif, idfGPS *idf, err error) {
+func (e *encodeState) convertTIFFToIDF(t *TIFF) (*idf, error) {
 	entries := []*idfEntry{}
 	if t.ImageDescription != nil {
 		entries = append(
@@ -179,186 +202,181 @@ func convertIDF(t *TIFF) (idfTIFF, idfExif, idfGPS *idf, err error) {
 			convertAsciiOrUTF8(tagCopyright, *t.Copyright),
 		)
 	}
-
-	l := len(entries)
-	if t.Exif != nil {
-		l++
-	}
-	if t.GPS != nil {
-		l++
-	}
-	offset := uint32(8)
-	offset += 2 + 12*uint32(l) + 4
-
-	if t.Exif != nil {
-		entries = append(entries, &idfEntry{
-			tag:      tagExifIFDPointer,
-			dataType: dataTypeLong,
-			longData: []uint32{
-				offset,
-			},
-		})
-
-		entries := []*idfEntry{}
-
-		// exif version
-		entries = append(entries, &idfEntry{
-			tag:           tagExifVersion,
-			dataType:      dataTypeUndefined,
-			undefinedData: []byte("0300"),
-		})
-
-		if t.Exif.ExposureTime != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagExposureTime,
-				dataType: dataTypeRational,
-				rationalData: []Rational{
-					*t.Exif.ExposureTime,
-				},
-			})
-		}
-		if t.Exif.FNumber != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagFNumber,
-				dataType: dataTypeRational,
-				rationalData: []Rational{
-					*t.Exif.FNumber,
-				},
-			})
-		}
-		if t.Exif.ExposureProgram != 0 {
-			entries = append(entries, &idfEntry{
-				tag:      tagExposureProgram,
-				dataType: dataTypeShort,
-				shortData: []uint16{
-					uint16(t.Exif.ExposureProgram),
-				},
-			})
-		}
-		if t.Exif.ISOSpeedRatings != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagISOSpeedRatings,
-				dataType: dataTypeShort,
-				shortData: []uint16{
-					t.Exif.ISOSpeedRatings[0],
-				},
-			})
-		}
-		if t.Exif.DateTimeOriginal != nil {
-			entries = append(entries, &idfEntry{
-				tag:       tagDateTimeOriginal,
-				dataType:  dataTypeAscii,
-				asciiData: *t.Exif.DateTimeOriginal,
-			})
-		}
-		if t.Exif.DateTimeDigitized != nil {
-			entries = append(entries, &idfEntry{
-				tag:       tagDateTimeDigitized,
-				dataType:  dataTypeAscii,
-				asciiData: *t.Exif.DateTimeDigitized,
-			})
-		}
-		if t.Exif.ShutterSpeedValue != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagShutterSpeedValue,
-				dataType: dataTypeSRational,
-				sRationalData: []SRational{
-					*t.Exif.ShutterSpeedValue,
-				},
-			})
-		}
-		if t.Exif.ApertureValue != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagApertureValue,
-				dataType: dataTypeRational,
-				rationalData: []Rational{
-					*t.Exif.ApertureValue,
-				},
-			})
-		}
-		if t.Exif.BrightnessValue != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagBrightnessValue,
-				dataType: dataTypeSRational,
-				sRationalData: []SRational{
-					*t.Exif.BrightnessValue,
-				},
-			})
-		}
-		if t.Exif.ExposureBiasValue != nil {
-			entries = append(entries, &idfEntry{
-				tag:      tagExposureBiasValue,
-				dataType: dataTypeSRational,
-				sRationalData: []SRational{
-					*t.Exif.ExposureBiasValue,
-				},
-			})
-		}
-		slices.SortFunc(entries, func(a, b *idfEntry) int {
-			return cmp.Compare(a.tag, b.tag)
-		})
-		idfExif = &idf{
-			entries: entries,
-		}
-		offset += 2 + 12*uint32(len(entries)) + 4
-	}
-
-	if t.GPS != nil {
-		entries = append(entries, &idfEntry{
-			tag:      tagGPSInfoIFDPointer,
-			dataType: dataTypeLong,
-			longData: []uint32{
-				offset,
-			},
-		})
-
-		entries := []*idfEntry{}
-		if t.GPS.LatitudeRef != nil {
-			entries = append(entries, &idfEntry{
-				tag:       tagGPSLatitudeRef,
-				dataType:  dataTypeAscii,
-				asciiData: *t.GPS.LatitudeRef,
-			}, &idfEntry{
-				tag:      tagGPSLatitude,
-				dataType: dataTypeRational,
-				rationalData: []Rational{
-					t.GPS.Latitude[0],
-					t.GPS.Latitude[1],
-					t.GPS.Latitude[2],
-				},
-			})
-		}
-		if t.GPS.LongitudeRef != nil {
-			entries = append(entries, &idfEntry{
-				tag:       tagGPSLongitudeRef,
-				dataType:  dataTypeAscii,
-				asciiData: *t.GPS.LongitudeRef,
-			}, &idfEntry{
-				tag:      tagGPSLongitude,
-				dataType: dataTypeRational,
-				rationalData: []Rational{
-					t.GPS.Longitude[0],
-					t.GPS.Longitude[1],
-					t.GPS.Longitude[2],
-				},
-			})
-		}
-		slices.SortFunc(entries, func(a, b *idfEntry) int {
-			return cmp.Compare(a.tag, b.tag)
-		})
-		idfGPS = &idf{
-			entries: entries,
-		}
-	}
-
 	slices.SortFunc(entries, func(a, b *idfEntry) int {
 		return cmp.Compare(a.tag, b.tag)
 	})
 
-	idfTIFF = &idf{
-		entries: entries,
+	// add dummy entry for Exif and GPS
+	offset := uint32(8)
+	offset += 2 + 12*uint32(len(entries))
+	if t.Exif != nil {
+		e.exifOffset = offset + 8
+		entries = append(entries, &idfEntry{
+			tag:      tagExifIFDPointer,
+			dataType: dataTypeLong,
+			longData: []uint32{0},
+		})
+		offset += 12
 	}
-	return
+	if t.GPS != nil {
+		e.gpsOffset = offset + 8
+		entries = append(entries, &idfEntry{
+			tag:      tagGPSInfoIFDPointer,
+			dataType: dataTypeLong,
+			longData: []uint32{
+				0,
+			},
+		})
+		offset += 12
+	}
+
+	return &idf{
+		entries: entries,
+	}, nil
+}
+
+func (e *encodeState) convertExifToIDF(exif *Exif) (*idf, error) {
+	entries := []*idfEntry{}
+
+	// exif version
+	entries = append(entries, &idfEntry{
+		tag:           tagExifVersion,
+		dataType:      dataTypeUndefined,
+		undefinedData: []byte("0300"),
+	})
+
+	if exif.ExposureTime != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagExposureTime,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				*exif.ExposureTime,
+			},
+		})
+	}
+	if exif.FNumber != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagFNumber,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				*exif.FNumber,
+			},
+		})
+	}
+	if exif.ExposureProgram != 0 {
+		entries = append(entries, &idfEntry{
+			tag:      tagExposureProgram,
+			dataType: dataTypeShort,
+			shortData: []uint16{
+				uint16(exif.ExposureProgram),
+			},
+		})
+	}
+	if exif.ISOSpeedRatings != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagISOSpeedRatings,
+			dataType: dataTypeShort,
+			shortData: []uint16{
+				exif.ISOSpeedRatings[0],
+			},
+		})
+	}
+	if exif.DateTimeOriginal != nil {
+		entries = append(entries, &idfEntry{
+			tag:       tagDateTimeOriginal,
+			dataType:  dataTypeAscii,
+			asciiData: *exif.DateTimeOriginal,
+		})
+	}
+	if exif.DateTimeDigitized != nil {
+		entries = append(entries, &idfEntry{
+			tag:       tagDateTimeDigitized,
+			dataType:  dataTypeAscii,
+			asciiData: *exif.DateTimeDigitized,
+		})
+	}
+	if exif.ShutterSpeedValue != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagShutterSpeedValue,
+			dataType: dataTypeSRational,
+			sRationalData: []SRational{
+				*exif.ShutterSpeedValue,
+			},
+		})
+	}
+	if exif.ApertureValue != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagApertureValue,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				*exif.ApertureValue,
+			},
+		})
+	}
+	if exif.BrightnessValue != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagBrightnessValue,
+			dataType: dataTypeSRational,
+			sRationalData: []SRational{
+				*exif.BrightnessValue,
+			},
+		})
+	}
+	if exif.ExposureBiasValue != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagExposureBiasValue,
+			dataType: dataTypeSRational,
+			sRationalData: []SRational{
+				*exif.ExposureBiasValue,
+			},
+		})
+	}
+	slices.SortFunc(entries, func(a, b *idfEntry) int {
+		return cmp.Compare(a.tag, b.tag)
+	})
+	return &idf{
+		entries: entries,
+	}, nil
+}
+
+func (e *encodeState) convertGPSToIDF(gps *GPS) (*idf, error) {
+	entries := []*idfEntry{}
+	if gps.LatitudeRef != nil {
+		entries = append(entries, &idfEntry{
+			tag:       tagGPSLatitudeRef,
+			dataType:  dataTypeAscii,
+			asciiData: *gps.LatitudeRef,
+		}, &idfEntry{
+			tag:      tagGPSLatitude,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				gps.Latitude[0],
+				gps.Latitude[1],
+				gps.Latitude[2],
+			},
+		})
+	}
+	if gps.LongitudeRef != nil {
+		entries = append(entries, &idfEntry{
+			tag:       tagGPSLongitudeRef,
+			dataType:  dataTypeAscii,
+			asciiData: *gps.LongitudeRef,
+		}, &idfEntry{
+			tag:      tagGPSLongitude,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				gps.Longitude[0],
+				gps.Longitude[1],
+				gps.Longitude[2],
+			},
+		})
+	}
+	slices.SortFunc(entries, func(a, b *idfEntry) int {
+		return cmp.Compare(a.tag, b.tag)
+	})
+	return &idf{
+		entries: entries,
+	}, nil
 }
 
 func convertAsciiOrUTF8(t tag, s string) *idfEntry {
