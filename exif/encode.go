@@ -121,6 +121,13 @@ func (e *encodeState) extend(n int) {
 	clear(e.data[l:])
 }
 
+// align aligns the data to the next 2-byte boundary.
+func (e *encodeState) align() {
+	if len(e.data)%2 != 0 {
+		e.extend(1)
+	}
+}
+
 func (e *encodeState) convertTIFFToIDF(t *TIFF) (*idf, error) {
 	entries := []*idfEntry{}
 	if t.ImageDescription != nil {
@@ -622,6 +629,7 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 	default:
 		panic(fmt.Sprintf("internal error: unknown data type: %d", entry.dataType))
 	}
+	e.align()
 	return offset, nil
 }
 
