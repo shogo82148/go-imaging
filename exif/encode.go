@@ -59,7 +59,7 @@ func (e *encodeState) encode(idfTIFF, idfExif, idfGPS *idf) error {
 	if idfGPS != nil {
 		size += 2 + 12*len(idfGPS.entries) + 4
 	}
-	e.setLen(size)
+	e.extend(size)
 
 	if e.byteOrder == binary.BigEndian {
 		e.data[0] = 'M'
@@ -101,16 +101,27 @@ func (e *encodeState) grow(n int) {
 	e.data = slices.Grow(e.data, n)
 }
 
-func (e *encodeState) setLen(n int) {
-	if n > cap(e.data) {
-		e.grow(n - len(e.data))
-	}
-	e.data = e.data[:n]
+func (e *encodeState) extend(n int) {
+	l := len(e.data)
+	e.grow(n)
+	e.data = e.data[:l+n]
+	clear(e.data[l:])
 }
 
 func convertTIFFToIDF(t *TIFF) (*idf, error) {
+	entries := []*idfEntry{}
+	if t.Orientation != 0 {
+		entries = append(entries, &idfEntry{
+			tag:      tagOrientation,
+			dataType: dataTypeShort,
+			shortData: []uint16{
+				uint16(t.Orientation),
+			},
+		})
+	}
+
 	return &idf{
-		entries: []*idfEntry{},
+		entries: entries,
 	}, nil
 }
 
@@ -151,7 +162,23 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 	case dataTypeByte:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.byteData)))
 		offset += 4
-
+	case dataTypeShort:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.shortData)))
+		offset += 4
+		if len(entry.shortData) <= 2 {
+			for i, v := range entry.shortData {
+				e.byteOrder.PutUint16(e.data[offset+2*uint32(i):offset+2*uint32(i)+2], v)
+			}
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(2 * len(entry.shortData))
+			for i, v := range entry.shortData {
+				e.byteOrder.PutUint16(e.data[l+2*i:l+2*i+2], v)
+			}
+		}
+		offset += 4
+	case dataTypeLong:
 	}
-	return offset + 12, nil
+	return offset, nil
 }

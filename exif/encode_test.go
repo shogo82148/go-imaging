@@ -27,6 +27,7 @@ func TestEncode(t *testing.T) {
 		t.Fatal(err)
 	}
 	log.Printf("%x", buf.Bytes())
+	os.WriteFile("hogehoge.exif", buf.Bytes(), 0644)
 
 	tiff1, err := Decode(&buf)
 	if err != nil {
