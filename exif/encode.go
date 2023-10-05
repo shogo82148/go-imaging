@@ -1,6 +1,7 @@
 package exif
 
 import (
+	"cmp"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -137,6 +138,37 @@ func convertTIFFToIDF(t *TIFF) (*idf, error) {
 			},
 		})
 	}
+	if t.XResolution != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagXResolution,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				*t.XResolution,
+			},
+		})
+	}
+	if t.YResolution != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagYResolution,
+			dataType: dataTypeRational,
+			rationalData: []Rational{
+				*t.YResolution,
+			},
+		})
+	}
+	if t.ResolutionUnit != 0 {
+		entries = append(entries, &idfEntry{
+			tag:      tagResolutionUnit,
+			dataType: dataTypeShort,
+			shortData: []uint16{
+				uint16(t.ResolutionUnit),
+			},
+		})
+	}
+
+	slices.SortFunc(entries, func(a, b *idfEntry) int {
+		return cmp.Compare(a.tag, b.tag)
+	})
 
 	return &idf{
 		entries: entries,
@@ -237,6 +269,18 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 		offset += 4
 	case dataTypeLong:
 	case dataTypeRational:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.rationalData)))
+		offset += 4
+		if len(entry.rationalData) > 0 {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(8 * len(entry.rationalData))
+			for i, v := range entry.rationalData {
+				e.byteOrder.PutUint32(e.data[l+8*i:l+8*i+4], v.Numerator)
+				e.byteOrder.PutUint32(e.data[l+8*i+4:l+8*i+8], v.Denominator)
+			}
+		}
+		offset += 4
 	case dataTypeSByte:
 	case dataTypeUndefined:
 	case dataTypeSShort:
