@@ -281,11 +281,9 @@ func (e *encodeState) convertExifToIDF(exif *Exif) (*idf, error) {
 	}
 	if exif.ISOSpeedRatings != nil {
 		entries = append(entries, &idfEntry{
-			tag:      tagISOSpeedRatings,
-			dataType: dataTypeShort,
-			shortData: []uint16{
-				exif.ISOSpeedRatings[0],
-			},
+			tag:       tagISOSpeedRatings,
+			dataType:  dataTypeShort,
+			shortData: exif.ISOSpeedRatings,
 		})
 	}
 	if exif.DateTimeOriginal != nil {

@@ -319,7 +319,14 @@ func (d *decodeState) decodeGPS(offset uint32) (*GPS, error) {
 }
 
 func (d *decodeState) decodeIFD(offset uint32) (*idf, error) {
+	if err := d.validateRange(offset, 1, 2); err != nil {
+		return nil, err
+	}
 	count := d.byteOrder.Uint16(d.data[offset : offset+2])
+	if err := d.validateRange(offset+6, uint32(count), 12); err != nil {
+		return nil, err
+	}
+
 	entries := make([]*idfEntry, count)
 	for i := 0; i < int(count); i++ {
 		entryOffset := offset + 2 + 12*uint32(i)
@@ -337,6 +344,9 @@ func (d *decodeState) decodeIFD(offset uint32) (*idf, error) {
 }
 
 func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
+	if uint32(len(d.data)) < offset+12 {
+		return nil, errors.New("exif: invalid offset")
+	}
 	tag := tag(d.byteOrder.Uint16(d.data[offset : offset+2]))
 	typ := dataType(d.byteOrder.Uint16(d.data[offset+2 : offset+4]))
 	count := d.byteOrder.Uint32(d.data[offset+4 : offset+8])
@@ -350,6 +360,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 4 {
 			entry.byteData = d.data[offset+8 : offset+8+count]
 		} else {
+			if err := d.validateRange(valueOffset, count, 1); err != nil {
+				return nil, err
+			}
 			entry.byteData = d.data[valueOffset : valueOffset+count]
 		}
 
@@ -357,6 +370,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 4 {
 			entry.asciiData = bytes2ascii(d.data[offset+8 : offset+8+count])
 		} else {
+			if err := d.validateRange(valueOffset, count, 1); err != nil {
+				return nil, err
+			}
 			entry.asciiData = bytes2ascii(d.data[valueOffset : valueOffset+count])
 		}
 
@@ -364,6 +380,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 2 {
 			entry.shortData = d.decodeShort(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 2); err != nil {
+				return nil, err
+			}
 			entry.shortData = d.decodeShort(valueOffset, count)
 		}
 
@@ -371,11 +390,17 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 1 {
 			entry.longData = d.decodeLong(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 4); err != nil {
+				return nil, err
+			}
 			entry.longData = d.decodeLong(valueOffset, count)
 		}
 
 	case dataTypeRational:
 		if count > 0 {
+			if err := d.validateRange(valueOffset, count, 8); err != nil {
+				return nil, err
+			}
 			entry.rationalData = d.decodeRational(valueOffset, count)
 		}
 
@@ -383,6 +408,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 4 {
 			entry.sByteData = d.decodeSByte(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 1); err != nil {
+				return nil, err
+			}
 			entry.sByteData = d.decodeSByte(valueOffset, count)
 		}
 
@@ -390,6 +418,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 4 {
 			entry.undefinedData = d.data[offset+8 : offset+8+count]
 		} else {
+			if err := d.validateRange(valueOffset, count, 1); err != nil {
+				return nil, err
+			}
 			entry.undefinedData = d.data[valueOffset : valueOffset+count]
 		}
 
@@ -397,6 +428,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 2 {
 			entry.sShortData = d.decodeSShort(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 2); err != nil {
+				return nil, err
+			}
 			entry.sShortData = d.decodeSShort(valueOffset, count)
 		}
 
@@ -404,11 +438,17 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 1 {
 			entry.sLongData = d.decodeSLong(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 4); err != nil {
+				return nil, err
+			}
 			entry.sLongData = d.decodeSLong(valueOffset, count)
 		}
 
 	case dataTypeSRational:
 		if count > 0 {
+			if err := d.validateRange(valueOffset, count, 8); err != nil {
+				return nil, err
+			}
 			entry.sRationalData = d.decodeSRational(valueOffset, count)
 		}
 
@@ -416,11 +456,17 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 1 {
 			entry.floatData = d.decodeFloat(offset+8, count)
 		} else {
+			if err := d.validateRange(valueOffset, count, 4); err != nil {
+				return nil, err
+			}
 			entry.floatData = d.decodeFloat(valueOffset, count)
 		}
 
 	case dataTypeDouble:
 		if count > 0 {
+			if err := d.validateRange(valueOffset, count, 8); err != nil {
+				return nil, err
+			}
 			entry.doubleData = d.decodeDouble(valueOffset, count)
 		}
 
@@ -428,6 +474,9 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		if count <= 4 {
 			entry.utf8data = bytes2ascii(d.data[offset+8 : offset+8+count])
 		} else {
+			if err := d.validateRange(valueOffset, count, 1); err != nil {
+				return nil, err
+			}
 			entry.utf8data = bytes2ascii(d.data[valueOffset : valueOffset+count])
 		}
 	}
@@ -519,4 +568,11 @@ func bytes2ascii(b []byte) string {
 		return string(b)
 	}
 	return string(b[:idx])
+}
+
+func (d *decodeState) validateRange(offset, count uint32, n int) error {
+	if uint64(len(d.data)) < uint64(offset)+uint64(count)*uint64(n) {
+		return errors.New("exif: invalid offset")
+	}
+	return nil
 }
