@@ -351,7 +351,10 @@ func (e *encodeState) convertGPSToIDF(gps *GPS) (*idf, error) {
 			tag:       tagGPSLatitudeRef,
 			dataType:  dataTypeAscii,
 			asciiData: *gps.LatitudeRef,
-		}, &idfEntry{
+		})
+	}
+	if gps.Latitude != [3]Rational{} {
+		entries = append(entries, &idfEntry{
 			tag:      tagGPSLatitude,
 			dataType: dataTypeRational,
 			rationalData: []Rational{
@@ -366,7 +369,10 @@ func (e *encodeState) convertGPSToIDF(gps *GPS) (*idf, error) {
 			tag:       tagGPSLongitudeRef,
 			dataType:  dataTypeAscii,
 			asciiData: *gps.LongitudeRef,
-		}, &idfEntry{
+		})
+	}
+	if gps.Longitude != [3]Rational{} {
+		entries = append(entries, &idfEntry{
 			tag:      tagGPSLongitude,
 			dataType: dataTypeRational,
 			rationalData: []Rational{
