@@ -165,6 +165,31 @@ func convertTIFFToIDF(t *TIFF) (*idf, error) {
 			},
 		})
 	}
+	if t.Software != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagSoftware, *t.Software),
+		)
+	}
+	if t.DateTime != nil {
+		entries = append(entries, &idfEntry{
+			tag:       tagDateTime,
+			dataType:  dataTypeAscii,
+			asciiData: *t.DateTime,
+		})
+	}
+	if t.Artist != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagArtist, *t.Artist),
+		)
+	}
+	if t.Copyright != nil {
+		entries = append(
+			entries,
+			convertAsciiOrUTF8(tagCopyright, *t.Copyright),
+		)
+	}
 
 	slices.SortFunc(entries, func(a, b *idfEntry) int {
 		return cmp.Compare(a.tag, b.tag)
