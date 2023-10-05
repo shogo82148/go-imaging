@@ -352,66 +352,78 @@ func (d *decodeState) decodeIFDEntry(offset uint32) (*idfEntry, error) {
 		} else {
 			entry.byteData = d.data[valueOffset : valueOffset+count]
 		}
+
 	case dataTypeAscii:
 		if count <= 4 {
 			entry.asciiData = bytes2ascii(d.data[offset+8 : offset+8+count])
 		} else {
 			entry.asciiData = bytes2ascii(d.data[valueOffset : valueOffset+count])
 		}
+
 	case dataTypeShort:
 		if count <= 2 {
 			entry.shortData = d.decodeShort(offset+8, count)
 		} else {
 			entry.shortData = d.decodeShort(valueOffset, count)
 		}
+
 	case dataTypeLong:
 		if count <= 1 {
 			entry.longData = d.decodeLong(offset+8, count)
 		} else {
 			entry.longData = d.decodeLong(valueOffset, count)
 		}
+
 	case dataTypeRational:
 		if count > 0 {
 			entry.rationalData = d.decodeRational(valueOffset, count)
 		}
+
 	case dataTypeSByte:
 		if count <= 4 {
 			entry.sByteData = d.decodeSByte(offset+8, count)
 		} else {
 			entry.sByteData = d.decodeSByte(valueOffset, count)
 		}
+
 	case dataTypeUndefined:
 		if count <= 4 {
 			entry.undefinedData = d.data[offset+8 : offset+8+count]
 		} else {
 			entry.undefinedData = d.data[valueOffset : valueOffset+count]
 		}
+
 	case dataTypeSShort:
 		if count <= 2 {
 			entry.sShortData = d.decodeSShort(offset+8, count)
 		} else {
 			entry.sShortData = d.decodeSShort(valueOffset, count)
 		}
+
 	case dataTypeSLong:
 		if count <= 1 {
 			entry.sLongData = d.decodeSLong(offset+8, count)
 		} else {
 			entry.sLongData = d.decodeSLong(valueOffset, count)
 		}
+
 	case dataTypeSRational:
 		if count > 0 {
 			entry.sRationalData = d.decodeSRational(valueOffset, count)
 		}
+
 	case dataTypeFloat:
 		if count <= 1 {
 			entry.floatData = d.decodeFloat(offset+8, count)
 		} else {
 			entry.floatData = d.decodeFloat(valueOffset, count)
 		}
+
 	case dataTypeDouble:
 		if count > 0 {
 			entry.doubleData = d.decodeDouble(valueOffset, count)
 		}
+
 	case dataTypeUTF8:
 		if count <= 4 {
 			entry.utf8data = bytes2ascii(d.data[offset+8 : offset+8+count])

@@ -2,7 +2,6 @@ package exif
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"testing"
 
@@ -26,8 +25,6 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("%x", buf.Bytes())
-	os.WriteFile("hogehoge.exif", buf.Bytes(), 0644)
 
 	tiff1, err := Decode(&buf)
 	if err != nil {

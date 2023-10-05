@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 )
 
@@ -16,21 +17,9 @@ type encodeState struct {
 func Encode(w io.Writer, t *TIFF) error {
 	var err error
 	var idfTIFF, idfExif, idfGPS *idf
-	idfTIFF, err = convertTIFFToIDF(t)
+	idfTIFF, idfExif, idfGPS, err = convertIDF(t)
 	if err != nil {
 		return err
-	}
-	if t.Exif != nil {
-		idfExif, err = convertExifToIDF(t.Exif)
-		if err != nil {
-			return err
-		}
-	}
-	if t.GPS != nil {
-		idfGPS, err = convertGPSInfoToIDF(t.GPS)
-		if err != nil {
-			return err
-		}
 	}
 
 	e := &encodeState{
@@ -109,7 +98,7 @@ func (e *encodeState) extend(n int) {
 	clear(e.data[l:])
 }
 
-func convertTIFFToIDF(t *TIFF) (*idf, error) {
+func convertIDF(t *TIFF) (idfTIFF, idfExif, idfGPS *idf, err error) {
 	entries := []*idfEntry{}
 	if t.ImageDescription != nil {
 		entries = append(
@@ -191,25 +180,185 @@ func convertTIFFToIDF(t *TIFF) (*idf, error) {
 		)
 	}
 
+	l := len(entries)
+	if t.Exif != nil {
+		l++
+	}
+	if t.GPS != nil {
+		l++
+	}
+	offset := uint32(8)
+	offset += 2 + 12*uint32(l) + 4
+
+	if t.Exif != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagExifIFDPointer,
+			dataType: dataTypeLong,
+			longData: []uint32{
+				offset,
+			},
+		})
+
+		entries := []*idfEntry{}
+
+		// exif version
+		entries = append(entries, &idfEntry{
+			tag:           tagExifVersion,
+			dataType:      dataTypeUndefined,
+			undefinedData: []byte("0300"),
+		})
+
+		if t.Exif.ExposureTime != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagExposureTime,
+				dataType: dataTypeRational,
+				rationalData: []Rational{
+					*t.Exif.ExposureTime,
+				},
+			})
+		}
+		if t.Exif.FNumber != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagFNumber,
+				dataType: dataTypeRational,
+				rationalData: []Rational{
+					*t.Exif.FNumber,
+				},
+			})
+		}
+		if t.Exif.ExposureProgram != 0 {
+			entries = append(entries, &idfEntry{
+				tag:      tagExposureProgram,
+				dataType: dataTypeShort,
+				shortData: []uint16{
+					uint16(t.Exif.ExposureProgram),
+				},
+			})
+		}
+		if t.Exif.ISOSpeedRatings != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagISOSpeedRatings,
+				dataType: dataTypeShort,
+				shortData: []uint16{
+					t.Exif.ISOSpeedRatings[0],
+				},
+			})
+		}
+		if t.Exif.DateTimeOriginal != nil {
+			entries = append(entries, &idfEntry{
+				tag:       tagDateTimeOriginal,
+				dataType:  dataTypeAscii,
+				asciiData: *t.Exif.DateTimeOriginal,
+			})
+		}
+		if t.Exif.DateTimeDigitized != nil {
+			entries = append(entries, &idfEntry{
+				tag:       tagDateTimeDigitized,
+				dataType:  dataTypeAscii,
+				asciiData: *t.Exif.DateTimeDigitized,
+			})
+		}
+		if t.Exif.ShutterSpeedValue != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagShutterSpeedValue,
+				dataType: dataTypeSRational,
+				sRationalData: []SRational{
+					*t.Exif.ShutterSpeedValue,
+				},
+			})
+		}
+		if t.Exif.ApertureValue != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagApertureValue,
+				dataType: dataTypeRational,
+				rationalData: []Rational{
+					*t.Exif.ApertureValue,
+				},
+			})
+		}
+		if t.Exif.BrightnessValue != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagBrightnessValue,
+				dataType: dataTypeSRational,
+				sRationalData: []SRational{
+					*t.Exif.BrightnessValue,
+				},
+			})
+		}
+		if t.Exif.ExposureBiasValue != nil {
+			entries = append(entries, &idfEntry{
+				tag:      tagExposureBiasValue,
+				dataType: dataTypeSRational,
+				sRationalData: []SRational{
+					*t.Exif.ExposureBiasValue,
+				},
+			})
+		}
+		slices.SortFunc(entries, func(a, b *idfEntry) int {
+			return cmp.Compare(a.tag, b.tag)
+		})
+		idfExif = &idf{
+			entries: entries,
+		}
+		offset += 2 + 12*uint32(len(entries)) + 4
+	}
+
+	if t.GPS != nil {
+		entries = append(entries, &idfEntry{
+			tag:      tagGPSInfoIFDPointer,
+			dataType: dataTypeLong,
+			longData: []uint32{
+				offset,
+			},
+		})
+
+		entries := []*idfEntry{}
+		if t.GPS.LatitudeRef != nil {
+			entries = append(entries, &idfEntry{
+				tag:       tagGPSLatitudeRef,
+				dataType:  dataTypeAscii,
+				asciiData: *t.GPS.LatitudeRef,
+			}, &idfEntry{
+				tag:      tagGPSLatitude,
+				dataType: dataTypeRational,
+				rationalData: []Rational{
+					t.GPS.Latitude[0],
+					t.GPS.Latitude[1],
+					t.GPS.Latitude[2],
+				},
+			})
+		}
+		if t.GPS.LongitudeRef != nil {
+			entries = append(entries, &idfEntry{
+				tag:       tagGPSLongitudeRef,
+				dataType:  dataTypeAscii,
+				asciiData: *t.GPS.LongitudeRef,
+			}, &idfEntry{
+				tag:      tagGPSLongitude,
+				dataType: dataTypeRational,
+				rationalData: []Rational{
+					t.GPS.Longitude[0],
+					t.GPS.Longitude[1],
+					t.GPS.Longitude[2],
+				},
+			})
+		}
+		slices.SortFunc(entries, func(a, b *idfEntry) int {
+			return cmp.Compare(a.tag, b.tag)
+		})
+		idfGPS = &idf{
+			entries: entries,
+		}
+	}
+
 	slices.SortFunc(entries, func(a, b *idfEntry) int {
 		return cmp.Compare(a.tag, b.tag)
 	})
 
-	return &idf{
+	idfTIFF = &idf{
 		entries: entries,
-	}, nil
-}
-
-func convertExifToIDF(t *Exif) (*idf, error) {
-	return &idf{
-		entries: []*idfEntry{},
-	}, nil
-}
-
-func convertGPSInfoToIDF(t *GPS) (*idf, error) {
-	return &idf{
-		entries: []*idfEntry{},
-	}, nil
+	}
+	return
 }
 
 func convertAsciiOrUTF8(t tag, s string) *idfEntry {
@@ -262,20 +411,31 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 	case dataTypeByte:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.byteData)))
 		offset += 4
+		if len(entry.byteData) <= 4 {
+			copy(e.data[offset:offset+4], entry.byteData)
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(len(entry.byteData))
+			copy(e.data[l:], entry.byteData)
+		}
+		offset += 4
+
 	case dataTypeAscii:
-		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.asciiData)))
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.asciiData)+1))
 		offset += 4
 		if len(entry.asciiData) <= 3 {
 			n := copy(e.data[offset:offset+4], entry.asciiData)
-			e.data[offset+uint32(n)] = '\x00'
+			e.data[offset+uint32(n)] = '\x00' // null terminator
 		} else {
 			l := len(e.data)
 			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
 			e.extend(len(entry.asciiData) + 1)
 			copy(e.data[l:], entry.asciiData)
-			e.data[l+len(entry.asciiData)] = '\x00'
+			e.data[l+len(entry.asciiData)] = '\x00' // null terminator
 		}
 		offset += 4
+
 	case dataTypeShort:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.shortData)))
 		offset += 4
@@ -292,7 +452,24 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 			}
 		}
 		offset += 4
+
 	case dataTypeLong:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.longData)))
+		offset += 4
+		if len(entry.longData) <= 1 {
+			for i, v := range entry.longData {
+				e.byteOrder.PutUint32(e.data[offset+4*uint32(i):offset+4*uint32(i)+4], v)
+			}
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(4 * len(entry.longData))
+			for i, v := range entry.longData {
+				e.byteOrder.PutUint32(e.data[l+4*i:l+4*i+4], v)
+			}
+		}
+		offset += 4
+
 	case dataTypeRational:
 		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.rationalData)))
 		offset += 4
@@ -306,27 +483,132 @@ func (e *encodeState) encodeIDFEntry(entry *idfEntry, offset uint32) (uint32, er
 			}
 		}
 		offset += 4
+
 	case dataTypeSByte:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.sByteData)))
+		offset += 4
+		if len(entry.sByteData) <= 4 {
+			copyInt8ToUint8(e.data[offset:offset+4], entry.sByteData)
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(len(entry.sByteData))
+			copyInt8ToUint8(e.data[l:], entry.sByteData)
+		}
+		offset += 4
+
 	case dataTypeUndefined:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.undefinedData)))
+		offset += 4
+		if len(entry.undefinedData) <= 4 {
+			copy(e.data[offset:offset+4], entry.undefinedData)
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(len(entry.undefinedData))
+			copy(e.data[l:], entry.undefinedData)
+		}
+		offset += 4
+
 	case dataTypeSShort:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.sShortData)))
+		offset += 4
+		if len(entry.sShortData) <= 2 {
+			for i, v := range entry.sShortData {
+				e.byteOrder.PutUint16(e.data[offset+2*uint32(i):offset+2*uint32(i)+2], uint16(v))
+			}
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(2 * len(entry.sShortData))
+			for i, v := range entry.sShortData {
+				e.byteOrder.PutUint16(e.data[l+2*i:l+2*i+2], uint16(v))
+			}
+		}
+		offset += 4
+
 	case dataTypeSLong:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.sLongData)))
+		offset += 4
+		if len(entry.sLongData) <= 1 {
+			for i, v := range entry.sLongData {
+				e.byteOrder.PutUint32(e.data[offset+4*uint32(i):offset+4*uint32(i)+4], uint32(v))
+			}
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(4 * len(entry.sLongData))
+			for i, v := range entry.sLongData {
+				e.byteOrder.PutUint32(e.data[l+4*i:l+4*i+4], uint32(v))
+			}
+		}
+		offset += 4
+
 	case dataTypeSRational:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.sRationalData)))
+		offset += 4
+		if len(entry.sRationalData) > 0 {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(8 * len(entry.sRationalData))
+			for i, v := range entry.sRationalData {
+				e.byteOrder.PutUint32(e.data[l+8*i:l+8*i+4], uint32(v.Numerator))
+				e.byteOrder.PutUint32(e.data[l+8*i+4:l+8*i+8], uint32(v.Denominator))
+			}
+		}
+		offset += 4
+
 	case dataTypeFloat:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.floatData)))
+		offset += 4
+		if len(entry.floatData) <= 1 {
+			for i, v := range entry.floatData {
+				e.byteOrder.PutUint32(e.data[offset+4*uint32(i):offset+4*uint32(i)+4], math.Float32bits(v))
+			}
+		} else {
+			l := len(e.data)
+			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+			e.extend(4 * len(entry.floatData))
+			for i, v := range entry.floatData {
+				e.byteOrder.PutUint32(e.data[l+4*i:l+4*i+4], math.Float32bits(v))
+			}
+		}
+		offset += 4
+
 	case dataTypeDouble:
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.doubleData)))
+		offset += 4
+		l := len(e.data)
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
+		e.extend(8 * len(entry.doubleData))
+		for i, v := range entry.doubleData {
+			e.byteOrder.PutUint64(e.data[l+8*i:l+8*i+8], math.Float64bits(v))
+		}
+		offset += 4
+
 	case dataTypeUTF8:
-		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.utf8data)))
+		e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(len(entry.utf8data)+1))
 		offset += 4
 		if len(entry.utf8data) <= 3 {
 			n := copy(e.data[offset:offset+4], entry.utf8data)
-			e.data[offset+uint32(n)] = '\x00'
+			e.data[offset+uint32(n)] = '\x00' // null-terminated
 		} else {
 			l := len(e.data)
 			e.byteOrder.PutUint32(e.data[offset:offset+4], uint32(l))
 			e.extend(len(entry.utf8data) + 1)
 			copy(e.data[l:], entry.utf8data)
-			e.data[l+len(entry.utf8data)] = '\x00'
+			e.data[l+len(entry.utf8data)] = '\x00' // null-terminated
 		}
 		offset += 4
+
+	default:
+		panic(fmt.Sprintf("internal error: unknown data type: %d", entry.dataType))
 	}
 	return offset, nil
+}
+
+func copyInt8ToUint8(dst []byte, src []int8) {
+	for i, v := range src {
+		dst[i] = uint8(v)
+	}
 }
