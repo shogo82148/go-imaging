@@ -355,13 +355,9 @@ func (e *encodeState) convertGPSToIDF(gps *GPS) (*idf, error) {
 	}
 	if gps.Latitude != [3]Rational{} {
 		entries = append(entries, &idfEntry{
-			tag:      tagGPSLatitude,
-			dataType: dataTypeRational,
-			rationalData: []Rational{
-				gps.Latitude[0],
-				gps.Latitude[1],
-				gps.Latitude[2],
-			},
+			tag:          tagGPSLatitude,
+			dataType:     dataTypeRational,
+			rationalData: gps.Latitude[:],
 		})
 	}
 	if gps.LongitudeRef != nil {
@@ -373,13 +369,9 @@ func (e *encodeState) convertGPSToIDF(gps *GPS) (*idf, error) {
 	}
 	if gps.Longitude != [3]Rational{} {
 		entries = append(entries, &idfEntry{
-			tag:      tagGPSLongitude,
-			dataType: dataTypeRational,
-			rationalData: []Rational{
-				gps.Longitude[0],
-				gps.Longitude[1],
-				gps.Longitude[2],
-			},
+			tag:          tagGPSLongitude,
+			dataType:     dataTypeRational,
+			rationalData: gps.Longitude[:],
 		})
 	}
 	slices.SortFunc(entries, func(a, b *idfEntry) int {
