@@ -299,6 +299,10 @@ func EncodeWithMeta(w io.Writer, m *ImageWithMeta, o *Options) error {
 	e.write(e.buf[:2])
 
 	// Write the metadata
+	// Exif
+	if m.Exif != nil {
+		e.writeExif(m.Exif)
+	}
 
 	// Write the ICC profile.
 	if m.ICCProfile != nil {
@@ -321,7 +325,32 @@ func EncodeWithMeta(w io.Writer, m *ImageWithMeta, o *Options) error {
 	return e.err
 }
 
+func (e *encoder) writeExif(tiff *exif.TIFF) {
+	if e.err != nil {
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	e.err = exif.Encode(buf, tiff)
+	if e.err != nil {
+		return
+	}
+
+	blockSize := buf.Len() + 2
+
+	e.buf[0] = 0xff
+	e.buf[1] = app1Marker
+	e.buf[2] = byte(blockSize >> 8)
+	e.buf[3] = byte(blockSize)
+	e.write(e.buf[:4])
+	e.write(buf.Bytes())
+}
+
 func (e *encoder) writeICCProfile(profile *icc.Profile) {
+	if e.err != nil {
+		return
+	}
+
 	buf := new(bytes.Buffer)
 	e.err = profile.Encode(buf)
 	if e.err != nil {
