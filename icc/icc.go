@@ -255,6 +255,9 @@ func Decode(r io.Reader) (*Profile, error) {
 		}
 
 		tagData := data[t.Offset-iccHeaderSize : t.Offset+t.Size-iccHeaderSize]
+		if len(tagData) < 4 {
+			return nil, errors.New("icc: invalid tag data")
+		}
 		tagType := TagType(binary.BigEndian.Uint32(tagData))
 
 		var content TagContent
