@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"io"
 
+	"github.com/shogo82148/go-imaging/exif"
 	"github.com/shogo82148/go-imaging/internal/imageutil"
 )
 
@@ -62,6 +63,7 @@ const (
 	// but in practice, their use is described at
 	// https://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html
 	app0Marker  = 0xe0
+	app1Marker  = 0xe1
 	app2Marker  = 0xe2
 	app14Marker = 0xee
 	app15Marker = 0xef
@@ -151,6 +153,7 @@ type decoder struct {
 	// metadata
 	iccProfile    [256][]byte
 	iccProfileLen int // total length of iccProfile
+	exif          *exif.TIFF
 }
 
 // fill fills up the d.bytes.buf buffer from the underlying io.Reader. It
