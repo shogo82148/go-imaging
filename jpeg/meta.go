@@ -7,12 +7,14 @@ import (
 	"image"
 	"io"
 
+	"github.com/shogo82148/go-imaging/exif"
 	"github.com/shogo82148/go-imaging/icc"
 )
 
 type ImageWithMeta struct {
 	image.Image
 	ICCProfile *icc.Profile
+	Exif       *exif.TIFF
 }
 
 func DecodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
@@ -115,6 +117,8 @@ func (d *decoder) decodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 			err = d.processDRI(n)
 		case app0Marker:
 			err = d.processApp0Marker(n)
+		case app1Marker:
+			err = d.processApp1Marker(n)
 		case app2Marker:
 			err = d.processApp2Marker(n)
 		case app14Marker:
@@ -170,10 +174,35 @@ func (d *decoder) decodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 	return &ImageWithMeta{
 		Image:      img,
 		ICCProfile: iccProfile,
+		Exif:       d.exif,
 	}, nil
 }
 
+const exifName = "Exif\x00\x00"
 const iccProfileName = "ICC_PROFILE\x00"
+
+func (d *decoder) processApp1Marker(n int) error {
+	l := len(exifName)
+	if n < l {
+		return d.ignore(n)
+	}
+	if err := d.readFull(d.tmp[:l]); err != nil {
+		return err
+	}
+	if string(d.tmp[:l]) != exifName {
+		return d.ignore(n - l)
+	}
+	buf := make([]byte, n-l)
+	if err := d.readFull(buf); err != nil {
+		return err
+	}
+	t, err := exif.Decode(bytes.NewReader(buf))
+	if err != nil {
+		return err
+	}
+	d.exif = t
+	return nil
+}
 
 func (d *decoder) processApp2Marker(n int) error {
 	l := len(iccProfileName) + 2 // +2 for sub-block index and total sub-blocks
@@ -270,6 +299,10 @@ func EncodeWithMeta(w io.Writer, m *ImageWithMeta, o *Options) error {
 	e.write(e.buf[:2])
 
 	// Write the metadata
+	// Exif
+	if m.Exif != nil {
+		e.writeExif(m.Exif)
+	}
 
 	// Write the ICC profile.
 	if m.ICCProfile != nil {
@@ -292,7 +325,32 @@ func EncodeWithMeta(w io.Writer, m *ImageWithMeta, o *Options) error {
 	return e.err
 }
 
+func (e *encoder) writeExif(tiff *exif.TIFF) {
+	if e.err != nil {
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	e.err = exif.Encode(buf, tiff)
+	if e.err != nil {
+		return
+	}
+
+	blockSize := buf.Len() + 2
+
+	e.buf[0] = 0xff
+	e.buf[1] = app1Marker
+	e.buf[2] = byte(blockSize >> 8)
+	e.buf[3] = byte(blockSize)
+	e.write(e.buf[:4])
+	e.write(buf.Bytes())
+}
+
 func (e *encoder) writeICCProfile(profile *icc.Profile) {
+	if e.err != nil {
+		return
+	}
+
 	buf := new(bytes.Buffer)
 	e.err = profile.Encode(buf)
 	if e.err != nil {
