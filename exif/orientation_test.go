@@ -13,6 +13,7 @@ import (
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/jpeg"
+	"github.com/shogo82148/go-imaging/png"
 	"github.com/shogo82148/go-imaging/pnm"
 	"github.com/shogo82148/go-imaging/srgb"
 )
@@ -147,7 +148,44 @@ func TestAutoOrientationJPEG(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			want, err := os.ReadFile(fmt.Sprintf("testdata/a-%d.golden.ppm", i))
+			want, err := os.ReadFile(fmt.Sprintf("testdata/a-%d.jpg.golden.ppm", i))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(got.Bytes(), want); diff != "" {
+				t.Errorf("AutoOrientation() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAutoOrientationPNG(t *testing.T) {
+	for i := 1; i <= 8; i++ {
+		i := i
+		t.Run(Orientation(i).String(), func(t *testing.T) {
+			// decode the image
+			f, err := os.Open(fmt.Sprintf("testdata/a-%d.png", i))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer f.Close()
+			img, err := png.DecodeWithMeta(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// adjust the orientation
+			o := img.Exif.Orientation
+			src := srgb.DecodeTone(img.Image)
+			dst := AutoOrientation(o, src)
+
+			var got bytes.Buffer
+			if err := pnm.Encode(&got, srgb.EncodeTone(dst)); err != nil {
+				t.Fatal(err)
+			}
+
+			want, err := os.ReadFile(fmt.Sprintf("testdata/a-%d.png.golden.ppm", i))
 			if err != nil {
 				t.Fatal(err)
 			}
