@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"io"
 
+	"github.com/shogo82148/go-imaging/exif"
 	"github.com/shogo82148/go-imaging/icc"
 )
 
@@ -131,6 +132,7 @@ type decoder struct {
 	srgb        *SRGB
 	profileName string
 	icc         *icc.Profile
+	exif        *exif.TIFF
 }
 
 // A FormatError reports that the input is not a valid PNG.
@@ -952,6 +954,23 @@ func (d *decoder) parseICCP(length uint32) error {
 	return d.verifyChecksum()
 }
 
+func (d *decoder) parseEXIF(length uint32) error {
+	// limit the length and compute the checksum.
+	r := io.LimitReader(io.TeeReader(d.r, d.crc), int64(length))
+
+	e, err := exif.Decode(r)
+	if err != nil {
+		return FormatError("bad EXIF: " + err.Error())
+	}
+	d.exif = e
+
+	// discard the rest.
+	if _, err := io.Copy(io.Discard, r); err != nil {
+		return err
+	}
+	return d.verifyChecksum()
+}
+
 func (d *decoder) parseChunk(configOnly bool) error {
 	// Read the length and chunk type.
 	if _, err := io.ReadFull(d.r, d.tmp[:8]); err != nil {
@@ -1028,6 +1047,11 @@ func (d *decoder) parseChunk(configOnly bool) error {
 			return chunkOrderError
 		}
 		return d.parseICCP(length)
+	case "eXIf":
+		if d.stage < dsSeenIHDR || d.stage > dsSeenIDAT {
+			return chunkOrderError
+		}
+		return d.parseEXIF(length)
 	}
 	if length > 0x7fffffff {
 		return FormatError(fmt.Sprintf("Bad chunk length: %d", length))

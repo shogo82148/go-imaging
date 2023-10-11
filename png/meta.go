@@ -11,6 +11,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/shogo82148/go-imaging/exif"
 	"github.com/shogo82148/go-imaging/icc"
 )
 
@@ -32,6 +33,10 @@ type ImageWithMeta struct {
 	// ICCProfile is the ICC profile of the image.
 	// If ICCProfile is nil, the image has no ICC profile.
 	ICCProfile *icc.Profile
+
+	// Exif is the Exif information of the image.
+	// If Exif is nil, the image has no Exif information.
+	Exif *exif.TIFF
 }
 
 type SRGB struct {
@@ -106,6 +111,7 @@ func DecodeWithMeta(r io.Reader) (*ImageWithMeta, error) {
 		img.ICCProfileName = d.profileName
 		img.ICCProfile = d.icc
 	}
+	img.Exif = d.exif
 	return img, nil
 }
 

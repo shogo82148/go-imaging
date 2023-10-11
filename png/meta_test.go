@@ -67,6 +67,23 @@ func TestDecodeWithMeta_ICCP(t *testing.T) {
 	}
 }
 
+func TestDecodeWithMeta_Exif(t *testing.T) {
+	f, err := os.Open("testdata/exif.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	img, err := DecodeWithMeta(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if img.Exif == nil {
+		t.Fatal("unexpected nil Exif")
+	}
+}
+
 func TestEncodeWithMeta_Gamma(t *testing.T) {
 	m := &ImageWithMeta{
 		Image: image.NewNRGBA(image.Rect(0, 0, 100, 100)),
