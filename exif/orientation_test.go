@@ -75,10 +75,10 @@ func TestAutoOrientation(t *testing.T) {
 
 	t.Run("OrientationLeftTop", func(t *testing.T) {
 		want := fp16.NewNRGBAh(image.Rect(0, 0, 2, 2))
-		want.SetNRGBAh(0, 0, c01)
-		want.SetNRGBAh(0, 1, c11)
-		want.SetNRGBAh(1, 0, c00)
-		want.SetNRGBAh(1, 1, c10)
+		want.SetNRGBAh(0, 0, c00)
+		want.SetNRGBAh(0, 1, c10)
+		want.SetNRGBAh(1, 0, c01)
+		want.SetNRGBAh(1, 1, c11)
 		dst := AutoOrientation(OrientationLeftTop, src)
 		if diff := cmp.Diff(dst, want); diff != "" {
 			t.Errorf("AutoOrientation() mismatch (-want +got):\n%s", diff)
@@ -91,7 +91,7 @@ func TestAutoOrientation(t *testing.T) {
 		want.SetNRGBAh(0, 1, c11)
 		want.SetNRGBAh(1, 0, c00)
 		want.SetNRGBAh(1, 1, c10)
-		dst := AutoOrientation(OrientationLeftTop, src)
+		dst := AutoOrientation(OrientationRightTop, src)
 		if diff := cmp.Diff(dst, want); diff != "" {
 			t.Errorf("AutoOrientation() mismatch (-want +got):\n%s", diff)
 		}
@@ -99,10 +99,10 @@ func TestAutoOrientation(t *testing.T) {
 
 	t.Run("OrientationRightBottom", func(t *testing.T) {
 		want := fp16.NewNRGBAh(image.Rect(0, 0, 2, 2))
-		want.SetNRGBAh(0, 0, c00)
-		want.SetNRGBAh(0, 1, c10)
-		want.SetNRGBAh(1, 0, c01)
-		want.SetNRGBAh(1, 1, c11)
+		want.SetNRGBAh(0, 0, c11)
+		want.SetNRGBAh(0, 1, c01)
+		want.SetNRGBAh(1, 0, c10)
+		want.SetNRGBAh(1, 1, c00)
 		dst := AutoOrientation(OrientationRightBottom, src)
 		if diff := cmp.Diff(dst, want); diff != "" {
 			t.Errorf("AutoOrientation() mismatch (-want +got):\n%s", diff)

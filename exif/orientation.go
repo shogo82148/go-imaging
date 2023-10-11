@@ -12,7 +12,6 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 	case OrientationTopLeft:
 		return src
 	case OrientationTopRight:
-		// flip horizontal
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
@@ -25,7 +24,6 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 		}
 		return dst
 	case OrientationBottomRight:
-		// rotate 180
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
@@ -39,7 +37,6 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 		}
 		return dst
 	case OrientationBottomLeft:
-		// flip vertical
 		dst := fp16.NewNRGBAh(src.Bounds())
 		dy := dst.Bounds().Dy()
 		for y := 0; y < dy; y++ {
@@ -47,7 +44,6 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 		}
 		return dst
 	case OrientationLeftTop:
-		// rotate 90
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
@@ -56,12 +52,11 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 			srcOffset := y * src.Stride
 			for x := 0; x < dx; x++ {
 				dstOffset := x * dst.Stride
-				copy(dst.Pix[dstOffset+(dy-1-y)*8:], src.Pix[srcOffset+x*8+0:srcOffset+x*8+8])
+				copy(dst.Pix[dstOffset+y*8:], src.Pix[srcOffset+x*8+0:srcOffset+x*8+8])
 			}
 		}
 		return dst
 	case OrientationRightTop:
-		// rotate 90 cw
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
@@ -75,7 +70,6 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 		}
 		return dst
 	case OrientationRightBottom:
-		// flip vertical and rotate 90 cw
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
@@ -83,13 +77,12 @@ func AutoOrientation(o Orientation, src *fp16.NRGBAh) *fp16.NRGBAh {
 		for y := 0; y < dy; y++ {
 			srcOffset := y * src.Stride
 			for x := 0; x < dx; x++ {
-				dstOffset := x * dst.Stride
-				copy(dst.Pix[dstOffset+y*8:], src.Pix[srcOffset+x*8+0:srcOffset+x*8+8])
+				dstOffset := (dx - 1 - x) * dst.Stride
+				copy(dst.Pix[dstOffset+(dy-1-y)*8:], src.Pix[srcOffset+x*8+0:srcOffset+x*8+8])
 			}
 		}
 		return dst
 	case OrientationLeftBottom:
-		// rotate 90 ccw
 		bounds := src.Bounds()
 		dy := bounds.Dy()
 		dx := bounds.Dx()
