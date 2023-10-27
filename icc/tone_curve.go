@@ -132,6 +132,9 @@ func (t *TagContentCurve) UnmarshalBinary(data []byte) error {
 	if err := binary.Read(r, binary.BigEndian, &curve); err != nil {
 		return err
 	}
+	if int64(len(data)) != 12+int64(curve.Count)*2 {
+		return errors.New("icc: invalid curve data")
+	}
 	t.Data = make([]uint16, curve.Count)
 	if err := binary.Read(r, binary.BigEndian, &t.Data); err != nil {
 		return err
