@@ -23,6 +23,7 @@ func main() {
 		name string
 		f    func(dst *fp16.NRGBAh, src *fp16.NRGBAh)
 	}{
+		{"area_average", resize.AreaAverage},
 		{"bilinear", resize.BiLinear},
 		{"nearest_neighbor", resize.NearestNeighbor},
 		{"hermite", resize.Hermite},
