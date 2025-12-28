@@ -8,7 +8,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 )
 
 func main() {
@@ -18,38 +18,38 @@ func main() {
 package srgb
 
 import (
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 )
 
 `)
 
 	// 8-bit sRGB encoded value to binary16 float linear value.
 	fmt.Fprint(buf, `// encodedToLinearTable converts 8-bit sRGB encoded value to binary16 float linear value.
-	var encodedToLinearTable = [256]float16.Float16{
+	var encodedToLinearTable = [256]floats.Float16{
 	`)
-	for i := 0; i < 0x100; i++ {
+	for i := range 0x100 {
 		v := float64(i) / 0xff
 		w := encodedToLinear(max(0, min(1, v)))
-		fmt.Fprintf(buf, "0x%04x, // %d\n", float16.FromFloat64(w).Bits(), i)
+		fmt.Fprintf(buf, "0x%04x, // %d\n", uint16(floats.Float64(w).Float16()), i)
 	}
 	fmt.Fprint(buf, "}\n\n")
 
 	// binary16 float linear value to 8-bit sRGB encoded value.
 	fmt.Fprint(buf, `// encodedToLinearTable16 converts 16-bit sRGB encoded value to binary16 float linear value.
-	var encodedToLinearTable16 = [65536]float16.Float16{
+	var encodedToLinearTable16 = [65536]floats.Float16{
 	`)
-	for i := 0; i < 0x10000; i++ {
+	for i := range 0x10000 {
 		v := float64(i) / 0xffff
 		w := encodedToLinear(max(0, min(1, v)))
-		fmt.Fprintf(buf, "0x%04x, // %d\n", float16.FromFloat64(w).Bits(), i)
+		fmt.Fprintf(buf, "0x%04x, // %d\n", uint16(floats.Float64(w).Float16()), i)
 	}
 	fmt.Fprint(buf, "}\n\n")
 
 	fmt.Fprint(buf, `// linearToEncodedTable8 converts binary16 float linear value to 16-bit sRGB encoded value.
 	var linearToEncodedTable = [65536]uint8{
 	`)
-	for i := 0; i < 0x10000; i++ {
-		v := float16.FromBits(uint16(i)).Float64()
+	for i := range 0x10000 {
+		v := float64(floats.Float16(uint16(i)).Float64())
 		w := linearToEncoded(max(0, min(1, v)))
 		fmt.Fprintf(buf, "0x%02x, // %.3x\n", uint16(math.RoundToEven(w*0xff)), v)
 	}
@@ -59,8 +59,8 @@ import (
 	fmt.Fprint(buf, `// linearToEncodedTable16 converts binary16 float linear value to 16-bit sRGB encoded value.
 	var linearToEncodedTable16 = [65536]uint16{
 	`)
-	for i := 0; i < 0x10000; i++ {
-		v := float16.FromBits(uint16(i)).Float64()
+	for i := range 0x10000 {
+		v := float64(floats.Float16(uint16(i)).Float64())
 		w := linearToEncoded(max(0, min(1, v)))
 		fmt.Fprintf(buf, "0x%04x, // %.3x\n", uint16(math.RoundToEven(w*0xffff)), v)
 	}

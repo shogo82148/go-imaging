@@ -10,13 +10,13 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
 )
 
-var one = float16.FromFloat64(1)
+var one = floats.Float64(1.0).Float16()
 
 // DecodeTone decodes an sRGB color encoded image to a linear color image.
 func DecodeTone(img image.Image) *fp16.NRGBAh {
@@ -120,7 +120,7 @@ func decodeToneNRGBA(img *image.NRGBA) *fp16.NRGBAh {
 			fr := encodedToLinearTable[c.R]
 			fg := encodedToLinearTable[c.G]
 			fb := encodedToLinearTable[c.B]
-			fa := float16.FromFloat64(float64(c.A) / 0xff)
+			fa := (floats.Float64(c.A) / 0xff).Float16()
 			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
 		}
 	})
@@ -136,7 +136,7 @@ func decodeToneNRGBA64(img *image.NRGBA64) *fp16.NRGBAh {
 			fr := encodedToLinearTable16[c.R]
 			fg := encodedToLinearTable16[c.G]
 			fb := encodedToLinearTable16[c.B]
-			fa := float16.FromFloat64(float64(c.A) / 0xffff)
+			fa := (floats.Float64(c.A) / 0xffff).Float16()
 			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: fr, G: fg, B: fb, A: fa})
 		}
 	})
@@ -175,8 +175,8 @@ func decodeToneAlpha(img *image.Alpha) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.AlphaAt(x, y)
-			fa := float64(c.A) / 0xff
-			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: float16.FromFloat64(fa)})
+			fa := (floats.Float64(c.A) / 0xff).Float16()
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: fa})
 		}
 	})
 	return ret
@@ -188,8 +188,8 @@ func decodeToneAlpha16(img *image.Alpha16) *fp16.NRGBAh {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.Alpha16At(x, y)
-			fa := float64(c.A) / 0xffff
-			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: float16.FromFloat64(fa)})
+			fa := (floats.Float64(c.A) / 0xffff).Float16()
+			ret.SetNRGBAh(x, y, fp16color.NRGBAh{R: one, G: one, B: one, A: fa})
 		}
 	})
 	return ret
@@ -266,7 +266,7 @@ func EncodeTone(img *fp16.NRGBAh) *image.NRGBA {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			rgba := img.NRGBAhAt(x, y)
-			fa := max(0, min(1, rgba.A.Float64())) // clamp
+			fa := max(0, min(1, float64(rgba.A.Float64()))) // clamp
 			a := byte(math.RoundToEven(fa * 0xff))
 			ret.SetNRGBA(x, y, color.NRGBA{
 				R: linearToEncodedTable[rgba.R],
@@ -287,7 +287,7 @@ func EncodeTone64(img *fp16.NRGBAh) *image.NRGBA64 {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			rgba := img.NRGBAhAt(x, y)
-			fa := max(0, min(1, rgba.A.Float64())) // clamp
+			fa := max(0, min(1, float64(rgba.A.Float64()))) // clamp
 			a := uint16(math.RoundToEven(fa * 0xffff))
 			ret.SetNRGBA64(x, y, color.NRGBA64{
 				R: linearToEncodedTable16[rgba.R],
