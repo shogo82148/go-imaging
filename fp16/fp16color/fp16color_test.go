@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 )
 
 func TestRGBAh_RGBA(t *testing.T) {
@@ -61,7 +61,7 @@ func TestNRGBAh_RGBA(t *testing.T) {
 	}
 }
 
-func toFloat16(t *testing.T, f float64) float16.Float16 {
+func toFloat16(t *testing.T, f float64) floats.Float16 {
 	t.Helper()
 	if f < 0 || f > 1 {
 		t.Errorf("%x is out of range", f)
@@ -69,8 +69,8 @@ func toFloat16(t *testing.T, f float64) float16.Float16 {
 	if math.IsNaN(f) {
 		t.Errorf("%x is NaN", f)
 	}
-	f16 := float16.FromFloat64(f)
-	if f16.Float64() != f {
+	f16 := floats.Float64(f).Float16()
+	if f16.Float64() != floats.Float64(f) {
 		t.Errorf("invalid test case: converting %x to float16 is lossy", f)
 	}
 	return f16
