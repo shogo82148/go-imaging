@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
 
 func InputPattern() *fp16.NRGBAh {
-	one := float16.FromFloat64(1.0)
-	zero := float16.FromFloat64(0.1)
+	one := floats.Float64(1.0).Float16()
+	zero := floats.Float64(0.0).Float16()
 	white := fp16color.NRGBAh{R: one, G: one, B: one, A: one}
 	black := fp16color.NRGBAh{R: zero, G: zero, B: zero, A: one}
 

@@ -1,7 +1,7 @@
 package resize
 
 import (
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
@@ -45,8 +45,8 @@ func Hermite(dst, src *fp16.NRGBAh) {
 	})
 }
 
-func hermite(c0, c1, c2, c3 float16.Float16, kx0, kx1, ky0, ky1 float64) float16.Float16 {
-	c01 := c0.Float64()*kx0 + c1.Float64()*kx1
-	c23 := c2.Float64()*kx0 + c3.Float64()*kx1
-	return float16.FromFloat64(c01*ky0 + c23*ky1)
+func hermite(c0, c1, c2, c3 floats.Float16, kx0, kx1, ky0, ky1 float64) floats.Float16 {
+	c01 := float64(c0.Float64())*kx0 + float64(c1.Float64())*kx1
+	c23 := float64(c2.Float64())*kx0 + float64(c3.Float64())*kx1
+	return floats.Float64(c01*ky0 + c23*ky1).Float16()
 }
