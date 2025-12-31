@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"math/bits"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
 
@@ -56,10 +56,10 @@ func (p *NRGBAh) NRGBAhAt(x, y int) fp16color.NRGBAh {
 	b := uint16(s[4])<<8 | uint16(s[5])
 	a := uint16(s[6])<<8 | uint16(s[7])
 	return fp16color.NRGBAh{
-		R: float16.FromBits(r),
-		G: float16.FromBits(g),
-		B: float16.FromBits(b),
-		A: float16.FromBits(a),
+		R: floats.Float16(r),
+		G: floats.Float16(g),
+		B: floats.Float16(b),
+		A: floats.Float16(a),
 	}
 }
 
@@ -69,16 +69,16 @@ func (p NRGBAh) SetNRGBAh(x, y int, c fp16color.NRGBAh) {
 	}
 	i := p.PixOffset(x, y)
 	s := p.Pix[i : i+8 : i+8]
-	r := c.R.Bits()
+	r := uint16(c.R)
 	s[0] = uint8(r >> 8)
 	s[1] = uint8(r)
-	g := c.G.Bits()
+	g := uint16(c.G)
 	s[2] = uint8(g >> 8)
 	s[3] = uint8(g)
-	b := c.B.Bits()
+	b := uint16(c.B)
 	s[4] = uint8(b >> 8)
 	s[5] = uint8(b)
-	a := c.A.Bits()
+	a := uint16(c.A)
 	s[6] = uint8(a >> 8)
 	s[7] = uint8(a)
 }

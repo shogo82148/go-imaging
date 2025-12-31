@@ -3,11 +3,11 @@
 package srgb
 
 import (
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 )
 
 // encodedToLinearTable converts 8-bit sRGB encoded value to binary16 float linear value.
-var encodedToLinearTable = [256]float16.Float16{
+var encodedToLinearTable = [256]floats.Float16{
 	0x0000, // 0
 	0x0cf9, // 1
 	0x10f9, // 2
@@ -267,7 +267,7 @@ var encodedToLinearTable = [256]float16.Float16{
 }
 
 // encodedToLinearTable16 converts 16-bit sRGB encoded value to binary16 float linear value.
-var encodedToLinearTable16 = [65536]float16.Float16{
+var encodedToLinearTable16 = [65536]floats.Float16{
 	0x0000, // 0
 	0x0014, // 1
 	0x0028, // 2

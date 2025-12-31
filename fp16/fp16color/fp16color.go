@@ -3,20 +3,20 @@ package fp16color
 import (
 	"image/color"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 )
 
 // RGBAh represents an alpha-premultiplied 64-bit color,
 // having 16 bits float for each of red, green, blue and alpha.
 type RGBAh struct {
-	R, G, B, A float16.Float16
+	R, G, B, A floats.Float16
 }
 
 func NewRGBAh(r, g, b, a float64) RGBAh {
-	fr := float16.FromFloat64(r)
-	fg := float16.FromFloat64(g)
-	fb := float16.FromFloat64(b)
-	fa := float16.FromFloat64(a)
+	fr := floats.Float64(r).Float16()
+	fg := floats.Float64(g).Float16()
+	fb := floats.Float64(b).Float16()
+	fa := floats.Float64(a).Float16()
 	return RGBAh{fr, fg, fb, fa}
 }
 
@@ -36,10 +36,10 @@ func rgbahModel(c color.Color) color.Color {
 	}
 	r, g, b, a := c.RGBA()
 	return NRGBAh{
-		R: float16.FromFloat64(float64(r) / 0xffff),
-		G: float16.FromFloat64(float64(g) / 0xffff),
-		B: float16.FromFloat64(float64(b) / 0xffff),
-		A: float16.FromFloat64(float64(a) / 0xffff),
+		R: floats.Float64(float64(r) / 0xffff).Float16(),
+		G: floats.Float64(float64(g) / 0xffff).Float16(),
+		B: floats.Float64(float64(b) / 0xffff).Float16(),
+		A: floats.Float64(float64(a) / 0xffff).Float16(),
 	}
 }
 
@@ -48,14 +48,14 @@ var _ color.Color = NRGBAh{}
 // NRGBAh represents a non-alpha-premultiplied 64-bit color,
 // having 16 bits float for each of red, green, blue and alpha.
 type NRGBAh struct {
-	R, G, B, A float16.Float16
+	R, G, B, A floats.Float16
 }
 
 func NewNRGBAh(r, g, b, a float64) NRGBAh {
-	fr := float16.FromFloat64(r)
-	fg := float16.FromFloat64(g)
-	fb := float16.FromFloat64(b)
-	fa := float16.FromFloat64(a)
+	fr := floats.Float64(r).Float16()
+	fg := floats.Float64(g).Float16()
+	fb := floats.Float64(b).Float16()
+	fa := floats.Float64(a).Float16()
 	return NRGBAh{fr, fg, fb, fa}
 }
 
@@ -88,9 +88,9 @@ func nrgbahModel(c color.Color) color.Color {
 	fg := float64(g) * factor
 	fb := float64(b) * factor
 	return NRGBAh{
-		R: float16.FromFloat64(fr),
-		G: float16.FromFloat64(fg),
-		B: float16.FromFloat64(fb),
-		A: float16.FromFloat64(fa),
+		R: floats.Float64(fr).Float16(),
+		G: floats.Float64(fg).Float16(),
+		B: floats.Float64(fb).Float16(),
+		A: floats.Float64(fa).Float16(),
 	}
 }

@@ -3,7 +3,7 @@ package resize
 import (
 	"math"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
@@ -29,56 +29,56 @@ func AreaAverage(dst, src *fp16.NRGBAh) {
 			// top right corner
 			c := nrgbhAt(src, srcBounds.Min.X+srcX0, srcBounds.Min.Y+srcY0)
 			w := (1 - dx0) * (1 - dy0)
-			rr = math.FMA(c.R.Float64(), w, rr)
-			gg = math.FMA(c.G.Float64(), w, gg)
-			bb = math.FMA(c.B.Float64(), w, bb)
-			aa = math.FMA(c.A.Float64(), w, aa)
+			rr = math.FMA(float64(c.R.Float64()), w, rr)
+			gg = math.FMA(float64(c.G.Float64()), w, gg)
+			bb = math.FMA(float64(c.B.Float64()), w, bb)
+			aa = math.FMA(float64(c.A.Float64()), w, aa)
 			ww += w
 
 			// top left corner
 			c = nrgbhAt(src, srcBounds.Min.X+srcX1, srcBounds.Min.Y+srcY0)
 			w = dx1 * (1 - dy0)
-			rr = math.FMA(c.R.Float64(), w, rr)
-			gg = math.FMA(c.G.Float64(), w, gg)
-			bb = math.FMA(c.B.Float64(), w, bb)
-			aa = math.FMA(c.A.Float64(), w, aa)
+			rr = math.FMA(float64(c.R.Float64()), w, rr)
+			gg = math.FMA(float64(c.G.Float64()), w, gg)
+			bb = math.FMA(float64(c.B.Float64()), w, bb)
+			aa = math.FMA(float64(c.A.Float64()), w, aa)
 			ww += w
 
 			// bottom right corner
 			c = nrgbhAt(src, srcBounds.Min.X+srcX0, srcBounds.Min.Y+srcY1)
 			w = (1 - dx0) * dy1
-			rr = math.FMA(c.R.Float64(), w, rr)
-			gg = math.FMA(c.G.Float64(), w, gg)
-			bb = math.FMA(c.B.Float64(), w, bb)
-			aa = math.FMA(c.A.Float64(), w, aa)
+			rr = math.FMA(float64(c.R.Float64()), w, rr)
+			gg = math.FMA(float64(c.G.Float64()), w, gg)
+			bb = math.FMA(float64(c.B.Float64()), w, bb)
+			aa = math.FMA(float64(c.A.Float64()), w, aa)
 			ww += w
 
 			// bottom left corner
 			c = nrgbhAt(src, srcBounds.Min.X+srcX1, srcBounds.Min.Y+srcY1)
 			w = dx1 * dy1
-			rr = math.FMA(c.R.Float64(), w, rr)
-			gg = math.FMA(c.G.Float64(), w, gg)
-			bb = math.FMA(c.B.Float64(), w, bb)
-			aa = math.FMA(c.A.Float64(), w, aa)
+			rr = math.FMA(float64(c.R.Float64()), w, rr)
+			gg = math.FMA(float64(c.G.Float64()), w, gg)
+			bb = math.FMA(float64(c.B.Float64()), w, bb)
+			aa = math.FMA(float64(c.A.Float64()), w, aa)
 			ww += w
 
 			for srcX := srcX0 + 1; srcX < srcX1; srcX++ {
 				// top edge
 				c := nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY0)
 				w := 1 - dy0
-				rr = math.FMA(c.R.Float64(), w, rr)
-				gg = math.FMA(c.G.Float64(), w, gg)
-				bb = math.FMA(c.B.Float64(), w, bb)
-				aa = math.FMA(c.A.Float64(), w, aa)
+				rr = math.FMA(float64(c.R.Float64()), w, rr)
+				gg = math.FMA(float64(c.G.Float64()), w, gg)
+				bb = math.FMA(float64(c.B.Float64()), w, bb)
+				aa = math.FMA(float64(c.A.Float64()), w, aa)
 				ww += w
 
 				// bottom edge
 				c = nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY1)
 				w = dy1
-				rr = math.FMA(c.R.Float64(), w, rr)
-				gg = math.FMA(c.G.Float64(), w, gg)
-				bb = math.FMA(c.B.Float64(), w, bb)
-				aa = math.FMA(c.A.Float64(), w, aa)
+				rr = math.FMA(float64(c.R.Float64()), w, rr)
+				gg = math.FMA(float64(c.G.Float64()), w, gg)
+				bb = math.FMA(float64(c.B.Float64()), w, bb)
+				aa = math.FMA(float64(c.A.Float64()), w, aa)
 				ww += w
 			}
 
@@ -86,38 +86,38 @@ func AreaAverage(dst, src *fp16.NRGBAh) {
 				// left edge
 				c := nrgbhAt(src, srcBounds.Min.X+srcX0, srcBounds.Min.Y+srcY)
 				w := 1 - dx0
-				rr = math.FMA(c.R.Float64(), w, rr)
-				gg = math.FMA(c.G.Float64(), w, gg)
-				bb = math.FMA(c.B.Float64(), w, bb)
-				aa = math.FMA(c.A.Float64(), w, aa)
+				rr = math.FMA(float64(c.R.Float64()), w, rr)
+				gg = math.FMA(float64(c.G.Float64()), w, gg)
+				bb = math.FMA(float64(c.B.Float64()), w, bb)
+				aa = math.FMA(float64(c.A.Float64()), w, aa)
 				ww += w
 
 				// right edge
 				c = nrgbhAt(src, srcBounds.Min.X+srcX1, srcBounds.Min.Y+srcY)
 				w = dx1
-				rr = math.FMA(c.R.Float64(), w, rr)
-				gg = math.FMA(c.G.Float64(), w, gg)
-				bb = math.FMA(c.B.Float64(), w, bb)
-				aa = math.FMA(c.A.Float64(), w, aa)
+				rr = math.FMA(float64(c.R.Float64()), w, rr)
+				gg = math.FMA(float64(c.G.Float64()), w, gg)
+				bb = math.FMA(float64(c.B.Float64()), w, bb)
+				aa = math.FMA(float64(c.A.Float64()), w, aa)
 				ww += w
 			}
 
 			for srcY := srcY0 + 1; srcY < srcY1; srcY++ {
 				for srcX := srcX0 + 1; srcX < srcX1; srcX++ {
 					c := nrgbhAt(src, srcBounds.Min.X+srcX, srcBounds.Min.Y+srcY)
-					rr += c.R.Float64()
-					gg += c.G.Float64()
-					bb += c.B.Float64()
-					aa += c.A.Float64()
+					rr += float64(c.R.Float64())
+					gg += float64(c.G.Float64())
+					bb += float64(c.B.Float64())
+					aa += float64(c.A.Float64())
 					ww += 1.0
 				}
 			}
 
 			var cc fp16color.NRGBAh
-			cc.R = float16.FromFloat64(rr / ww)
-			cc.G = float16.FromFloat64(gg / ww)
-			cc.B = float16.FromFloat64(bb / ww)
-			cc.A = float16.FromFloat64(aa / ww)
+			cc.R = floats.Float64(rr / ww).Float16()
+			cc.G = floats.Float64(gg / ww).Float16()
+			cc.B = floats.Float64(bb / ww).Float16()
+			cc.A = floats.Float64(aa / ww).Float16()
 			dst.SetNRGBAh(x+dstBounds.Min.X, y+dstBounds.Min.Y, cc)
 		}
 	})

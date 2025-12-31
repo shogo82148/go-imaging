@@ -1,7 +1,7 @@
 package resize
 
 import (
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 	"github.com/shogo82148/go-imaging/internal/parallels"
@@ -34,10 +34,10 @@ func BiLinear(dst, src *fp16.NRGBAh) {
 	})
 }
 
-func bilinear(c0, c1, c2, c3 float16.Float16, dx, dy float64) float16.Float16 {
-	return float16.FromFloat64(c0.Float64()*(1-dx)*(1-dy) +
-		c1.Float64()*dx*(1-dy) +
-		c2.Float64()*(1-dx)*dy +
-		c3.Float64()*dx*dy,
-	)
+func bilinear(c0, c1, c2, c3 floats.Float16, dx, dy float64) floats.Float16 {
+	return floats.Float64(float64(c0.Float64())*(1-dx)*(1-dy) +
+		float64(c1.Float64())*dx*(1-dy) +
+		float64(c2.Float64())*(1-dx)*dy +
+		float64(c3.Float64())*dx*dy,
+	).Float16()
 }

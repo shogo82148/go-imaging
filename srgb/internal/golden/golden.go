@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shogo82148/float16"
+	"github.com/shogo82148/floats"
 	"github.com/shogo82148/go-imaging/fp16"
 	"github.com/shogo82148/go-imaging/fp16/fp16color"
 )
@@ -139,8 +139,8 @@ func NewNRGBAh() *fp16.NRGBAh {
 	img := fp16.NewNRGBAh(image.Rect(0, 0, 256, 256))
 	for y := 0; y < 256; y++ {
 		for x := 0; x < 256; x++ {
-			v := float16.FromFloat64(float64(x) / 255)
-			a := float16.FromFloat64(float64(y) / 255)
+			v := (floats.Float64(x) / 255).Float16()
+			a := (floats.Float64(y) / 255).Float16()
 			img.SetNRGBAh(x, y, fp16color.NRGBAh{
 				R: v,
 				G: v,
