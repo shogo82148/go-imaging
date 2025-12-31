@@ -53,9 +53,9 @@ func (p *Profile) EncodeTone(img *fp16.NRGBAh) *image.NRGBA {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			rgba := img.NRGBAhAt(x, y)
-			fr := cr.EncodeTone(rgba.B.Float64())
-			fg := cg.EncodeTone(rgba.G.Float64())
-			fb := cb.EncodeTone(rgba.B.Float64())
+			fr := cr.EncodeTone(float64(rgba.R.Float64()))
+			fg := cg.EncodeTone(float64(rgba.G.Float64()))
+			fb := cb.EncodeTone(float64(rgba.B.Float64()))
 			ret.SetNRGBA(x, y, color.NRGBA{
 				R: uint8(fr * 0xff),
 				G: uint8(fg * 0xff),
@@ -77,9 +77,9 @@ func (p *Profile) EncodeTone16(img *fp16.NRGBAh) *image.NRGBA64 {
 	parallels.Parallel(bounds.Min.Y, bounds.Max.Y, func(y int) {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			rgba := img.NRGBAhAt(x, y)
-			fr := cr.EncodeTone(rgba.B.Float64())
-			fg := cg.EncodeTone(rgba.G.Float64())
-			fb := cb.EncodeTone(rgba.B.Float64())
+			fr := cr.EncodeTone(float64(rgba.R.Float64()))
+			fg := cg.EncodeTone(float64(rgba.G.Float64()))
+			fb := cb.EncodeTone(float64(rgba.B.Float64()))
 			ret.SetNRGBA64(x, y, color.NRGBA64{
 				R: uint16(fr * 0xffff),
 				G: uint16(fg * 0xffff),
