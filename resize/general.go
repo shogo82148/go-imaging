@@ -22,7 +22,7 @@ func General(dst, src *fp16.NRGBAh) {
 
 	// resize horizontally
 	parallels.Parallel(0, srcDy, func(y int) {
-		for x := 0; x < dstDx; x++ {
+		for x := range dstDx {
 			var c fp16color.NRGBAh
 			srcX, dx := scale(x, srcDx, dstDx)
 			c0 := nrgbhAt(src, srcBounds.Min.X+srcX-1, srcBounds.Min.Y+y)
@@ -45,7 +45,7 @@ func General(dst, src *fp16.NRGBAh) {
 
 	// resize vertically
 	parallels.Parallel(0, dstDy, func(y int) {
-		for x := 0; x < dstDx; x++ {
+		for x := range dstDx {
 			var c fp16color.NRGBAh
 			srcY, dy := scale(y, srcDy, dstDy)
 			c0 := nrgbhAt(tmp, x, srcY-1)

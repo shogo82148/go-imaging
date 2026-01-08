@@ -17,7 +17,7 @@ func Hermite(dst, src *fp16.NRGBAh) {
 	srcDy := srcBounds.Dy()
 
 	parallels.Parallel(0, dstDy, func(y int) {
-		for x := 0; x < dstDx; x++ {
+		for x := range dstDx {
 			var c fp16color.NRGBAh
 			srcX, dx0 := scale(x, srcDx, dstDx)
 			srcY, dy0 := scale(y, srcDy, dstDy)
@@ -46,7 +46,7 @@ func Hermite(dst, src *fp16.NRGBAh) {
 }
 
 func hermite(c0, c1, c2, c3 floats.Float16, kx0, kx1, ky0, ky1 float64) floats.Float16 {
-	c01 := float64(c0.Float64())*kx0 + float64(c1.Float64())*kx1
-	c23 := float64(c2.Float64())*kx0 + float64(c3.Float64())*kx1
-	return floats.Float64(c01*ky0 + c23*ky1).Float16()
+	c01 := c0.Float64().BuiltIn()*kx0 + c1.Float64().BuiltIn()*kx1
+	c23 := c2.Float64().BuiltIn()*kx0 + c3.Float64().BuiltIn()*kx1
+	return floats.NewFloat16(c01*ky0 + c23*ky1)
 }

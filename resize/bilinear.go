@@ -35,9 +35,9 @@ func BiLinear(dst, src *fp16.NRGBAh) {
 }
 
 func bilinear(c0, c1, c2, c3 floats.Float16, dx, dy float64) floats.Float16 {
-	return floats.Float64(float64(c0.Float64())*(1-dx)*(1-dy) +
-		float64(c1.Float64())*dx*(1-dy) +
-		float64(c2.Float64())*(1-dx)*dy +
-		float64(c3.Float64())*dx*dy,
+	return floats.Float64(c0.Float64().BuiltIn()*(1-dx)*(1-dy) +
+		c1.Float64().BuiltIn()*dx*(1-dy) +
+		c2.Float64().BuiltIn()*(1-dx)*dy +
+		c3.Float64().BuiltIn()*dx*dy,
 	).Float16()
 }
