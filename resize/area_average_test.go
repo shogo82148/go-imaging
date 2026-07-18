@@ -16,8 +16,8 @@ func TestAreaAverage(t *testing.T) {
 func BenchmarkAreaAverage(b *testing.B) {
 	src := golden.InputPattern()
 	dst := golden.NewDst()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		AreaAverage(dst, src)
 	}
 }

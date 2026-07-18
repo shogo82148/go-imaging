@@ -13,18 +13,18 @@ type RGBAh struct {
 }
 
 func NewRGBAh(r, g, b, a float64) RGBAh {
-	fr := floats.Float64(r).Float16()
-	fg := floats.Float64(g).Float16()
-	fb := floats.Float64(b).Float16()
-	fa := floats.Float64(a).Float16()
+	fr := floats.NewFloat16(r)
+	fg := floats.NewFloat16(g)
+	fb := floats.NewFloat16(b)
+	fa := floats.NewFloat16(a)
 	return RGBAh{fr, fg, fb, fa}
 }
 
 func (c RGBAh) RGBA() (r, g, b, a uint32) {
-	r = uint32(c.R.Float64() * 0xffff)
-	g = uint32(c.G.Float64() * 0xffff)
-	b = uint32(c.B.Float64() * 0xffff)
-	a = uint32(c.A.Float64() * 0xffff)
+	r = uint32(c.R.Float64().BuiltIn() * 0xffff)
+	g = uint32(c.G.Float64().BuiltIn() * 0xffff)
+	b = uint32(c.B.Float64().BuiltIn() * 0xffff)
+	a = uint32(c.A.Float64().BuiltIn() * 0xffff)
 	return
 }
 
@@ -36,10 +36,10 @@ func rgbahModel(c color.Color) color.Color {
 	}
 	r, g, b, a := c.RGBA()
 	return NRGBAh{
-		R: floats.Float64(float64(r) / 0xffff).Float16(),
-		G: floats.Float64(float64(g) / 0xffff).Float16(),
-		B: floats.Float64(float64(b) / 0xffff).Float16(),
-		A: floats.Float64(float64(a) / 0xffff).Float16(),
+		R: floats.NewFloat16(float64(r) / 0xffff),
+		G: floats.NewFloat16(float64(g) / 0xffff),
+		B: floats.NewFloat16(float64(b) / 0xffff),
+		A: floats.NewFloat16(float64(a) / 0xffff),
 	}
 }
 
@@ -52,18 +52,18 @@ type NRGBAh struct {
 }
 
 func NewNRGBAh(r, g, b, a float64) NRGBAh {
-	fr := floats.Float64(r).Float16()
-	fg := floats.Float64(g).Float16()
-	fb := floats.Float64(b).Float16()
-	fa := floats.Float64(a).Float16()
+	fr := floats.NewFloat16(r)
+	fg := floats.NewFloat16(g)
+	fb := floats.NewFloat16(b)
+	fa := floats.NewFloat16(a)
 	return NRGBAh{fr, fg, fb, fa}
 }
 
 func (c NRGBAh) RGBA() (r, g, b, a uint32) {
-	fa := c.A.Float64()
-	fr := c.R.Float64() * fa
-	fg := c.G.Float64() * fa
-	fb := c.B.Float64() * fa
+	fa := c.A.Float64().BuiltIn()
+	fr := c.R.Float64().BuiltIn() * fa
+	fg := c.G.Float64().BuiltIn() * fa
+	fb := c.B.Float64().BuiltIn() * fa
 	r = uint32(fr * 0xffff)
 	g = uint32(fg * 0xffff)
 	b = uint32(fb * 0xffff)
@@ -88,9 +88,9 @@ func nrgbahModel(c color.Color) color.Color {
 	fg := float64(g) * factor
 	fb := float64(b) * factor
 	return NRGBAh{
-		R: floats.Float64(fr).Float16(),
-		G: floats.Float64(fg).Float16(),
-		B: floats.Float64(fb).Float16(),
-		A: floats.Float64(fa).Float16(),
+		R: floats.NewFloat16(fr),
+		G: floats.NewFloat16(fg),
+		B: floats.NewFloat16(fb),
+		A: floats.NewFloat16(fa),
 	}
 }

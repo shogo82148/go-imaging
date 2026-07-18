@@ -19,7 +19,7 @@ import (
 
 func TestAutoOrientation(t *testing.T) {
 	src := fp16.NewNRGBAh(image.Rect(0, 0, 2, 2))
-	one := floats.Float64(1.0).Float16()
+	one := floats.NewFloat16(1.0)
 	c00 := fp16color.NRGBAh{A: one}
 	c01 := fp16color.NRGBAh{R: one, A: one}
 	c10 := fp16color.NRGBAh{G: one, A: one}

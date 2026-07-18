@@ -56,10 +56,10 @@ func (p *NRGBAh) NRGBAhAt(x, y int) fp16color.NRGBAh {
 	b := uint16(s[4])<<8 | uint16(s[5])
 	a := uint16(s[6])<<8 | uint16(s[7])
 	return fp16color.NRGBAh{
-		R: floats.Float16(r),
-		G: floats.Float16(g),
-		B: floats.Float16(b),
-		A: floats.Float16(a),
+		R: floats.NewFloat16FromBits(r),
+		G: floats.NewFloat16FromBits(g),
+		B: floats.NewFloat16FromBits(b),
+		A: floats.NewFloat16FromBits(a),
 	}
 }
 
@@ -69,16 +69,16 @@ func (p NRGBAh) SetNRGBAh(x, y int, c fp16color.NRGBAh) {
 	}
 	i := p.PixOffset(x, y)
 	s := p.Pix[i : i+8 : i+8]
-	r := uint16(c.R)
+	r := c.R.Bits()
 	s[0] = uint8(r >> 8)
 	s[1] = uint8(r)
-	g := uint16(c.G)
+	g := c.G.Bits()
 	s[2] = uint8(g >> 8)
 	s[3] = uint8(g)
-	b := uint16(c.B)
+	b := c.B.Bits()
 	s[4] = uint8(b >> 8)
 	s[5] = uint8(b)
-	a := uint16(c.A)
+	a := c.A.Bits()
 	s[6] = uint8(a >> 8)
 	s[7] = uint8(a)
 }
